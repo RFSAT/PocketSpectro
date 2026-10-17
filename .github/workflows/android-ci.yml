@@ -10,8 +10,6 @@ jobs:
   build:
     # Pinned rather than ubuntu-latest, which moves to Ubuntu 26 from 19 Oct 2026.
     runs-on: ubuntu-24.04
-    env:
-      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -43,9 +41,24 @@ jobs:
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk "dist/PocketSpectro_v${APP_VERSION}-debug.apk"
 
-      - name: No signing secrets
-        if: env.HAS_KEYSTORE != 'true'
-        run: echo "::warning::KEYSTORE_BASE64 / STORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD are not set, so the signed Google Play bundle (AAB) was not built."
+      - name: Check signing secrets
+        # Reports which secrets this run can see (never their values).
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          missing=""
+          for n in KEYSTORE_BASE64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -n "${!n}" ]; then echo "$n: set"; else echo "$n: NOT visible"; missing="$missing $n"; fi
+          done
+          if [ -z "$missing" ]; then
+            echo "HAS_KEYSTORE=true" >> "$GITHUB_ENV"
+          else
+            echo "HAS_KEYSTORE=false" >> "$GITHUB_ENV"
+            echo "::warning::Not visible to this run (repo ${{ github.repository }}, event ${{ github.event_name }}):${missing}. They must be Repository secrets (Settings > Secrets and variables > Actions > Secrets tab) of this repository. The signed Google Play bundle (AAB) was not built."
+          fi
 
       - name: Decode release keystore
         if: env.HAS_KEYSTORE == 'true'
