@@ -60,7 +60,9 @@ class ScreenshotTest {
         }
     }
 
-    private fun show(tab: Tab, exitDialog: Boolean = false, sessions: Boolean = false, mapSelect: Int? = null) {
+    private fun show(tab: Tab, exitDialog: Boolean = false, sessions: Boolean = false, mapSelect: Int? = null,
+                     store: Boolean = false) {
+        com.rfsat.pocketspectro.ui.StoreShots.hideVersion = store
         compose.setContent {
             SpectroTheme {
                 AppRoot(engine, {}, {}, initialTab = tab.ordinal, showExitDialog = exitDialog,
@@ -368,9 +370,112 @@ class ScreenshotTest {
         shot("14_setup_full_length")
     }
 
+    // ---- Google Play listing set (9:16, no version shown) -> build/screenshots/play/ ----
+
+    private fun storeShot(name: String) {
+        compose.waitForIdle()
+        val f = java.io.File("build/screenshots/play/$name.png")
+        compose.onRoot().captureRoboImage(f.path)
+        // Play wants 24-bit PNG without alpha; trim the 1 px rounding to exactly 1080 x 1920.
+        val img = javax.imageio.ImageIO.read(f)
+        val out = java.awt.image.BufferedImage(minOf(1080, img.width), minOf(1920, img.height), java.awt.image.BufferedImage.TYPE_INT_RGB)
+        out.createGraphics().apply { drawImage(img, 0, 0, null); dispose() }
+        javax.imageio.ImageIO.write(out, "png", f)
+    }
+
+    @Test @Config(qualifiers = PLAY) fun p1_live() {
+        prepare()
+        engine.store.update { it.copy(scansToAverage = 2) }
+        engine.setRunning(true)
+        show(Tab.LIVE, store = true)
+        freshFrames(3)
+        storeShot("1_live_spectrum")
+    }
+
+    @Test @Config(qualifiers = PLAY) fun p2_fire() {
+        prepare()
+        engine.applyRecommendedFirePreset()
+        engine.simulator!!.fireOn = true
+        engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
+        engine.armFire(true)
+        engine.setRunning(true)
+        show(Tab.FIRE, store = true)
+        waitFor { engine.frame.value?.fireConfirmed == true }
+        freshFrames(1)
+        storeShot("2_fire_detection")
+    }
+
+    @Test @Config(qualifiers = PLAY) fun p3_map() {
+        prepare()
+        seedMapData()
+        com.rfsat.pocketspectro.ui.PreviewTiles.loaded = 0
+        show(Tab.MAP, store = true)
+        waitFor(40_000) { com.rfsat.pocketspectro.ui.PreviewTiles.loaded > 0 }
+        storeShot("3_map_detections")
+    }
+
+    @Test @Config(qualifiers = PLAY) fun p4_mapDetail() {
+        prepare()
+        seedMapData()
+        com.rfsat.pocketspectro.ui.PreviewTiles.loaded = 0
+        show(Tab.MAP, mapSelect = 1, store = true)
+        waitFor(40_000) { com.rfsat.pocketspectro.ui.PreviewTiles.loaded > 0 }
+        storeShot("4_detection_details")
+    }
+
+    @Test @Config(qualifiers = PLAY) fun p5_absorbance() {
+        prepare()
+        engine.store.update { it.copy(scansToAverage = 4, boxcarWidth = 2) }
+        waitFor { engine.connection.value is com.rfsat.pocketspectro.core.Connection.Ready }
+        engine.captureDark(useShutter = true)
+        waitFor { engine.dark.value != null }
+        engine.captureReference()
+        waitFor { engine.reference.value != null }
+        engine.simulator!!.sampleOn = true
+        engine.store.update { it.copy(displayMode = DisplayMode.ABSORBANCE) }
+        engine.setRunning(true)
+        show(Tab.LIVE, store = true)
+        freshFrames(2)
+        storeShot("5_absorbance")
+    }
+
+    @Test @Config(qualifiers = PLAY) fun p6_log() {
+        prepare()
+        waitFor { engine.connection.value is com.rfsat.pocketspectro.core.Connection.Ready }
+        engine.store.update { it.copy(sequenceIntervalSec = 0.5, maxAcquisitions = 500) }
+        engine.startLog()
+        show(Tab.LOG, store = true)
+        waitFor { engine.log.value.spectra >= 4 && engine.location.fix.value != null }
+        storeShot("6_logging_gps")
+    }
+
+    @Test @Config(qualifiers = PLAY) fun p7_home() {
+        prepare()
+        engine.setRunning(true)
+        show(Tab.HOME, store = true)
+        freshFrames(1)
+        storeShot("7_home")
+    }
+
+    @Test @Config(qualifiers = PLAY_NIGHT) fun p8_fireDark() {
+        prepare()
+        engine.applyRecommendedFirePreset()
+        engine.simulator!!.fireOn = true
+        engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
+        engine.armFire(true)
+        engine.setRunning(true)
+        show(Tab.FIRE, store = true)
+        waitFor { engine.frame.value?.fireConfirmed == true }
+        freshFrames(1)
+        storeShot("8_fire_dark_mode")
+    }
+
     companion object {
         /** Galaxy S24: 1080 x 2340 px at 420 dpi. */
         const val PHONE = "w412dp-h892dp-420dpi"
+        /** Google Play: 9:16 (1080 x 1920 after a 1 px trim), Galaxy S24 width and density. */
+        const val PLAY = "w412dp-h732dp-420dpi"
+        const val PLAY_NIGHT = "w412dp-h732dp-night-420dpi"
         const val TALL = "w412dp-h2200dp-420dpi"
     }
 }

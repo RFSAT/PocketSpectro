@@ -121,3 +121,8 @@ jobs:
         with:
           name: PocketSpectro-screenshots
           path: app/build/screenshots/*.png
+      - uses: actions/upload-artifact@v7
+        with:
+          # 1080 x 1920, 24-bit PNG, no version shown: ready for the Play listing.
+          name: PocketSpectro-play-screenshots
+          path: app/build/screenshots/play/*.png

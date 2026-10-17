@@ -53,7 +53,7 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
     ) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("PocketSpectro", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 28.sp)
-            Text("v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", color = muted)
+            if (!StoreShots.hideVersion) Text("v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", color = muted)
             Text("Portable spectroscopy over USB", fontSize = 13.sp)
         }
 
@@ -174,3 +174,6 @@ private fun LinkRow(label: String, value: String, url: String, onOpen: () -> Uni
         }
     }
 }
+
+/** Test hook: store-listing screenshots leave out the version so they stay valid across releases. */
+object StoreShots { @Volatile var hideVersion = false }
