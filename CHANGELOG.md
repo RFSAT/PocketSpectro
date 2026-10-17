@@ -4,6 +4,11 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH), so it rises with every version.
 
+## 1.1.3 (build 10103), October 2026
+- Release build shrunk with R8 (code and resources). The mapping file travels inside the bundle, so
+  Play shows readable crash and ANR stack traces. The app's own classes keep their names, so saved
+  settings and logged files stay compatible.
+
 ## 1.1.2 (build 10102), October 2026
 - Play version code derived from the version number, so a new version can never reuse a code Play has
   already seen (Play rejected a repeated code). Codes now run 10102, 10103, ... 10200 for 1.2.0.
