@@ -138,6 +138,7 @@ class ObpMessage(
 object ObpTypes {
     const val GET_SERIAL_NUMBER = 0x00000100
     const val GET_SPECTRUM_NOW = 0x00101000
+    const val GET_RAW_SPECTRUM_NOW = 0x00101100
     const val SET_ITIME_USEC = 0x00110010
     const val SET_TRIG_MODE = 0x00110110
     const val GET_BINNING_FACTOR = 0x00110280

@@ -70,6 +70,24 @@ class ProcessingTest {
         assertEquals(0.0, local.window1.percentAboveFloor, 2.0)
     }
 
+    @Test fun confidenceHighForDoubletLowForContinuum() {
+        val rnd = java.util.Random(3)
+        fun noisy(y: DoubleArray) = DoubleArray(y.size) { y[it] + rnd.nextGaussian() * 6.0 }
+        val fire = FireDetector.analyse(wl, noisy(spectrum(true)), FireDetector.Config())
+        val none = FireDetector.analyse(wl, noisy(spectrum(false)), FireDetector.Config())
+        assertTrue("fire confidence ${fire.confidence.score}", fire.confidence.score > 60)
+        assertTrue("continuum confidence ${none.confidence.score}", none.confidence.score < 20)
+        assertTrue(fire.confidence.ratio in 1.0..2.5)
+    }
+
+    @Test fun otherMaximaUseLocalContinuum() {
+        // Broad hump plus one narrow line at 900 nm: only the line rises above the local continuum.
+        val y = DoubleArray(wl.size) { i -> 1000.0 + 1500.0 * exp(-((wl[i] - 780.0) / 60.0).pow(2)) + 300.0 * exp(-((wl[i] - 900.0) / 0.8).pow(2)) }
+        val peaks = FireDetector.otherMaximaLocal(wl, y)
+        assertEquals(1, peaks.size)
+        assertEquals(900.0, peaks[0].wavelengthNm, 0.6)
+    }
+
     @Test fun piIdenticalPicksLastCrossingInPixelWindow() {
         // Flat spectrum: every gradient is zero, so every pixel is a "crossing"; Pi keeps the last (largest wavelength).
         val y = DoubleArray(wl.size) { 1000.0 }

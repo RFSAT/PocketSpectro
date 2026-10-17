@@ -150,11 +150,14 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
                 else -> muted
             }
             Row {
-                Text(support.label, Modifier.weight(0.38f), color = colour, style = MaterialTheme.typography.bodySmall,
+                Text(support.short, Modifier.weight(0.38f), color = colour, style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold)
                 Text(list.joinToString(", ") { it.name }, Modifier.weight(0.62f), style = MaterialTheme.typography.bodySmall)
             }
         }
+        Text("Experimental: driver ported from Ocean's SeaBreeze sources, not yet tested on that hardware. " +
+            "Needs external power: also needs a powered USB hub or the unit's own supply.",
+            style = MaterialTheme.typography.bodySmall, color = muted)
         Text("Not affiliated with or endorsed by Ocean Optics / Ocean Insight.", style = MaterialTheme.typography.bodySmall,
             color = muted.copy(alpha = 0.7f), fontSize = 11.sp)
     }

@@ -10,7 +10,7 @@ It started as the port of the Raspberry Pi Zero W "Wi-Fi STS-NIR" web server (20
 Apache/PHP served the UI and a C++ daemon talked to the spectrometer. On the phone, the app talks to the
 spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Ltd. Version 1.0.0 (build 1).
+RFSAT Ltd. Version 1.1.0 (build 2).
 
 ## Hardware
 
@@ -27,15 +27,20 @@ when plugged in, and `core/DeviceCatalog.kt` decides what happens next:
 | Status | Models | Protocol |
 |---|---|---|
 | Supported | STS-VIS / STS-NIR / STS-UV (variant named from the unit's calibration) | OBP |
-| Experimental | Spark (same OBP frame and pixel count as the STS) | OBP |
-| Driver planned | USB2000+ / Flame-S, USB4000 / Flame-T, USB650, USB2000, HR2000+, HR4000, Maya2000 Pro, Torus, Jaz | OOI legacy |
-| Driver planned | Ocean ST, SR2/4/6, HR2/4/6 (USB-C) | OBP2 |
-| Driver planned | Ocean HDX | OBP |
-| Needs external power | QE Pro, NIRQuest256/512, QE65000 (cooled detectors) | OBP / OOI |
+| Experimental | Spark, Ocean HDX | OBP |
+| Experimental | USB2000+ / Flame-S, USB4000 / Flame-T, USB650, USB2000, HR2000+, HR4000, Maya2000 Pro, Torus, Jaz | OOI (classic) |
+| Experimental | Ocean ST, SR2/4/6, HR2/4/6 (USB-C) | OBP2 |
+| Experimental, needs external power | NIRQuest256/512 | OOI |
+| Planned | QE Pro (32-bit buffered spectra), QE65000 | OBP / OOI |
 
-Adding a family means one class implementing `Spectrometer` plus a branch in `SpectrometerFactory`;
-processing, logging and the UI are model-independent. **Fire detection is offered only when an
-STS-NIR is connected**; for any other unit the Fire tab is hidden and no K-line analysis runs.
+"Experimental" means the driver is ported from SeaBreeze / python-seabreeze and passes tests against
+simulated devices, but has not yet run on that hardware.
+
+Each protocol family is one class implementing `Spectrometer` (`ObpSpectrometer`, `OoiSpectrometer`,
+`Obp2Spectrometer`), chosen by `SpectrometerFactory`; processing, logging and the UI are model-independent.
+**Fire detection is offered only on near-infrared units** (calibrated range starting at 600 nm or more and
+covering 766-770 nm, such as the STS-NIR or ST-NIR); for any other unit the Fire tab is hidden and no K-line
+analysis runs.
 
 ## Screens
 
@@ -71,6 +76,11 @@ A port of the Pi's `af3-peaks.php` (the "Detect" page):
   (gradient indices; the peak is the next pixel), gradient zero-crossing, and each line compared with
   the **mean of the whole spectrum**. Use it to compare with old field data.
 
+Every analysis also carries a **detector confidence** (0-100 %): the product of the lines' signal-to-noise
+against the scatter of the continuum flanks (3σ → 0, 10σ → full), whether both doublet lines rise above the
+noise, whether their height ratio is plausible (0.8-2.6), and how close the peaks are to 766.5 / 769.9 nm.
+The "other maxima" list measures each local maximum against a running-median continuum (±12 nm).
+
 Two findings from the Pi source:
 1. The Ocean daemon stored "scans to average" and "boxcar" but never applied them. The Pi's
    detector therefore always ran on a single unsmoothed scan, despite requesting boxcar 3.
@@ -90,8 +100,10 @@ Separately, every confirmed fire detection with a GPS fix is appended to
 `Android/data/com.PocketSpectro/files/events/fire_events.csv`, whether or not a log is open. A sustained
 detection is re-recorded every 10 s or after 25 m of movement. The Map tab reads this journal.
 
-Map tiles come from OpenStreetMap, Esri World Imagery and OpenTopoMap (no API key, as in DBM). For wide
-distribution, check those providers' usage terms or switch to a keyed provider.
+Map tiles come from OpenStreetMap, Esri World Imagery and OpenTopoMap (no API key, as in DBM). MapLibre
+identifies the app in every tile request (User-Agent `com.PocketSpectro/<version> … MapLibre Android`) and
+caches tiles on the phone, as OpenStreetMap's tile policy asks. If usage grows, switch the style URLs in
+`ui/map/EventMap.kt` to a keyed provider such as MapTiler.
 
 ## Build
 

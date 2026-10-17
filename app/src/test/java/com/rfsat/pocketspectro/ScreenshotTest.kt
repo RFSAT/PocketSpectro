@@ -80,10 +80,36 @@ class ScreenshotTest {
         }
         java.io.File(dir, "fire.csv").writeText(sb.toString())
         val j = engine.journal.file.apply { parentFile?.mkdirs() }
-        j.writeText(com.rfsat.pocketspectro.data.FireEventJournal.HEADER + "\n" +
-            "2026-10-17T10:17:05Z,1792233425000,37.96220,23.80720,412.0,4.0,766.41,27.2,770.10,16.5,LOCAL_CONTINUUM,session_20261017_101500\n" +
-            "2026-10-17T10:18:40Z,1792233520000,37.96690,23.81500,455.0,5.0,766.45,41.8,769.96,29.0,LOCAL_CONTINUUM,session_20261017_101500\n" +
-            "2026-10-17T10:19:10Z,1792233550000,37.96810,23.81810,470.0,6.0,766.36,18.9,769.88,12.4,LOCAL_CONTINUUM,\n")
+        java.io.File(j.parentFile, "spectra").mkdirs()
+        val wl = com.rfsat.pocketspectro.proc.Calibration.binnedWavelengths(doubleArrayOf(636.0, 0.473, -2.0e-5, 0.0), 1024, 0)
+        val rnd = java.util.Random(7)
+        fun spec(k: Double) = DoubleArray(wl.size) { i ->
+            val l = wl[i]
+            1480 + 6400 * kotlin.math.exp(-((l - 860) / 210).let { it * it }) * (0.7 / (1 + kotlin.math.exp(-(l - 715) / 12)) + 0.3) +
+                k * (kotlin.math.exp(-((l - 766.5) / 0.75).let { it * it }) + 0.62 * kotlin.math.exp(-((l - 769.9) / 0.75).let { it * it })) +
+                rnd.nextGaussian() * 25
+        }
+        val cfg = com.rfsat.pocketspectro.proc.FireDetector.Config()
+        val rows = StringBuilder(com.rfsat.pocketspectro.data.FireEventJournal.HEADER + "\n")
+        val pts = listOf(Triple(37.96220, 23.80720, 1500.0), Triple(37.96690, 23.81500, 2600.0), Triple(37.96810, 23.81810, 900.0))
+        pts.forEachIndexed { n, (lat, lon, k) ->
+            val t = 1792232225000L + n * 95_000L
+            val y = spec(k)
+            val r = com.rfsat.pocketspectro.proc.FireDetector.analyse(wl, y, cfg)
+            java.io.File(j.parentFile, "spectra/$t.csv").writeText("wavelength_nm,counts\n" +
+                wl.indices.joinToString("\n") { "%.4f,%.2f".format(java.util.Locale.US, wl[it], y[it]) })
+            val c = r.confidence
+            rows.append(listOf(com.rfsat.pocketspectro.data.SessionLogger.iso(t), t, lat, lon, 412 + 25 * n, 4 + n, "3.6", "48",
+                "%.3f".format(java.util.Locale.US, r.window1.wavelengthNm), "%.1f".format(java.util.Locale.US, r.window1.intensity),
+                "%.1f".format(java.util.Locale.US, r.window1.baseline), "%.2f".format(java.util.Locale.US, r.window1.percentAboveFloor),
+                "%.3f".format(java.util.Locale.US, r.window2.wavelengthNm), "%.1f".format(java.util.Locale.US, r.window2.intensity),
+                "%.1f".format(java.util.Locale.US, r.window2.baseline), "%.2f".format(java.util.Locale.US, r.window2.percentAboveFloor),
+                "LOCAL_CONTINUUM", "%.1f".format(java.util.Locale.US, c.score), "%.2f".format(java.util.Locale.US, c.snr1),
+                "%.2f".format(java.util.Locale.US, c.snr2), "%.3f".format(java.util.Locale.US, c.ratio),
+                "STS-NIR", "S08245", 200000, 1, "10.0", 2, if (n < 2) "session_20261017_101500" else "", "spectra/$t.csv",
+            ).joinToString(",")).append("\n")
+        }
+        j.writeText(rows.toString())
     }
 
     private fun waitFor(timeoutMs: Long = 15_000, cond: () -> Boolean) {
@@ -324,6 +350,15 @@ class ScreenshotTest {
         prepare()
         show(Tab.LOG)
         shot("13_log_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun t05_mapDetailFull() {
+        prepare()
+        seedMapData()
+        com.rfsat.pocketspectro.ui.PreviewTiles.loaded = 0
+        show(Tab.MAP, mapSelect = 1)
+        waitFor(40_000) { com.rfsat.pocketspectro.ui.PreviewTiles.loaded > 0 }
+        shot("15_map_detection_full_length")
     }
 
     @Test @Config(qualifiers = TALL) fun t04_setupFull() {

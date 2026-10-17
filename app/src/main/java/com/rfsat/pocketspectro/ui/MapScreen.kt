@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -121,7 +124,11 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
             }
         }
 
-        selected?.let { e -> EventCard(e, onClose = { selected = null }, Modifier.align(Alignment.BottomCenter)) }
+        selected?.let { e ->
+            var spectrum by remember(e) { mutableStateOf<Pair<DoubleArray, DoubleArray>?>(null) }
+            LaunchedEffect(e) { spectrum = withContext(Dispatchers.IO) { engine.journal.loadSpectrum(e) } }
+            EventCard(e, spectrum, onClose = { selected = null }, Modifier.align(Alignment.BottomCenter))
+        }
     }
 }
 
@@ -133,23 +140,77 @@ private fun LegendDot(c: Color, label: String) {
     }
 }
 
+/** Full detail of one detection: spectrum at that place, confidence and measurement conditions. */
 @Composable
-private fun EventCard(e: FireEvent, onClose: () -> Unit, modifier: Modifier) {
-    Surface(modifier.fillMaxWidth().padding(10.dp), shape = RoundedCornerShape(14.dp), tonalElevation = 3.dp, shadowElevation = 6.dp) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+private fun EventCard(e: FireEvent, spectrum: Pair<DoubleArray, DoubleArray>?, onClose: () -> Unit, modifier: Modifier) {
+    var fullRange by remember(e) { mutableStateOf(false) }
+    val maxH = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.58f).dp
+    Surface(modifier.fillMaxWidth().heightIn(max = maxH).padding(10.dp), shape = RoundedCornerShape(14.dp),
+        tonalElevation = 3.dp, shadowElevation = 6.dp) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Fire detection", color = FireRed, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Column(Modifier.weight(1f)) {
+                    Text("Fire detection", color = FireRed, fontWeight = FontWeight.Bold)
+                    Text(SimpleDateFormat("d MMM yyyy, HH:mm:ss", Locale.getDefault()).format(Date(e.timeMs)),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                ConfidenceBadge(e.confidence)
                 IconButton(onClick = onClose) { Icon(Icons.Filled.Close, "Close") }
             }
-            KeyValue("Time", SimpleDateFormat("d MMM yyyy, HH:mm:ss", Locale.getDefault()).format(Date(e.timeMs)))
+
+            if (spectrum != null) {
+                val (wl, y) = spectrum
+                val lo = minOf(e.line1Nm, e.line2Nm) - 18.0; val hi = maxOf(e.line1Nm, e.line2Nm) + 18.0
+                SpectrumChart(
+                    wl, y, height = 190.dp, yUnit = "counts",
+                    xRange = if (fullRange || !lo.isFinite()) null else lo.coerceAtLeast(wl.first())..hi.coerceAtMost(wl.last()),
+                    bands = listOf(
+                        Band(com.rfsat.pocketspectro.proc.FireDetector.K_LINE_1_NM - 1.2, com.rfsat.pocketspectro.proc.FireDetector.K_LINE_1_NM + 1.2, FireRed.copy(alpha = 0.15f)),
+                        Band(com.rfsat.pocketspectro.proc.FireDetector.K_LINE_2_NM - 1.2, com.rfsat.pocketspectro.proc.FireDetector.K_LINE_2_NM + 1.2, FireRed.copy(alpha = 0.15f)),
+                    ),
+                    markers = listOf(e.line1Nm, e.line2Nm),
+                )
+                androidx.compose.material3.TextButton(onClick = { fullRange = !fullRange }) {
+                    Text(if (fullRange) "Zoom to K lines" else "Show full spectrum")
+                }
+            } else {
+                Text("No spectrum was saved with this detection.", style = MaterialTheme.typography.bodySmall)
+            }
+
+            Text("Detector", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            KeyValue("K I 766.5 nm", "%.2f nm  %.0f counts  %+.1f %%".format(Locale.US, e.line1Nm, e.line1Counts, e.line1Pct))
+            KeyValue("K I 769.9 nm", "%.2f nm  %.0f counts  %+.1f %%".format(Locale.US, e.line2Nm, e.line2Counts, e.line2Pct))
+            KeyValue("Compared with", if (e.baseline == "GLOBAL_MEAN") "spectrum mean (Pi rule)"
+                else "local continuum %.0f / %.0f counts".format(Locale.US, e.line1Baseline, e.line2Baseline))
+            KeyValue("Signal-to-noise", "%.1f / %.1f".format(Locale.US, e.snr1, e.snr2))
+            KeyValue("Line ratio 766/770", if (e.ratio.isFinite()) "%.2f (expected 1–2.5)".format(Locale.US, e.ratio) else "—")
+            KeyValue("Threshold", "%.1f %%, confirmed over %d scan%s".format(Locale.US, e.thresholdPct, e.confirmFrames, if (e.confirmFrames == 1) "" else "s"))
+
+            Text("Measurement", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            KeyValue("Spectrometer", "${e.model} · ${e.serial}")
+            KeyValue("Integration", "%.1f ms × %d scan%s".format(Locale.US, e.integrationUs / 1000.0, e.scans, if (e.scans == 1) "" else "s"))
             KeyValue("Position", "%.6f, %.6f".format(Locale.US, e.latitude, e.longitude) +
                 (e.accuracyM?.let { "  ±%.0f m".format(Locale.US, it) } ?: ""))
             e.altitudeM?.let { KeyValue("Altitude", "%.0f m".format(Locale.US, it)) }
-            KeyValue("K I 766.5 nm", "%.2f nm  %+.1f %%".format(Locale.US, e.line1Nm, e.line1Pct))
-            KeyValue("K I 769.9 nm", "%.2f nm  %+.1f %%".format(Locale.US, e.line2Nm, e.line2Pct))
-            KeyValue("Compared with", if (e.baseline == "GLOBAL_MEAN") "spectrum mean (Pi rule)" else "local continuum")
+            if (e.speedMs != null || e.bearingDeg != null) KeyValue("Movement",
+                listOfNotNull(e.speedMs?.let { "%.1f km/h".format(Locale.US, it * 3.6) }, e.bearingDeg?.let { "heading %.0f°".format(Locale.US, it) }).joinToString(", "))
             KeyValue("Session", e.session?.removePrefix("session_") ?: "not logging")
         }
+    }
+}
+
+@Composable
+private fun ConfidenceBadge(score: Double) {
+    if (!score.isFinite()) return
+    val c = when {
+        score >= 70 -> SafeGreen
+        score >= 40 -> WarnAmber
+        else -> FireRed
+    }
+    Column(Modifier.background(c.copy(alpha = 0.18f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("%.0f %%".format(Locale.US, score), fontWeight = FontWeight.Bold, color = c)
+        Text("confidence", style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -164,7 +225,11 @@ private fun MapPreview(layer: MapLayer, tracks: List<SessionTrack>, events: List
     var tiles by remember { mutableStateOf<Map<Triple<Int, Int, Int>, androidx.compose.ui.graphics.ImageBitmap>>(emptyMap()) }
     var viewSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val density = androidx.compose.ui.platform.LocalDensity.current.density
-    val view = remember(pts, viewSize, density) { PreviewView.fit(pts, viewSize.width, viewSize.height, density) }
+    val view = remember(pts, viewSize, density, selected) {
+        PreviewView.fit(pts, viewSize.width, viewSize.height, density)?.let { v ->
+            selected?.let { v.centredOn(it.latitude, it.longitude, 0.15) } ?: v
+        }
+    }
 
     LaunchedEffect(layer, view) {
         val v = view ?: return@LaunchedEffect
@@ -215,6 +280,11 @@ private class PreviewView(val zoom: Int, val tilePx: Double, val originX: Double
         return (1 - kotlin.math.ln(kotlin.math.tan(r) + 1 / kotlin.math.cos(r)) / Math.PI) / 2 * tilePx * (1 shl zoom) - originY
     }
     var widthPx = 0; var heightPx = 0
+
+    /** Same zoom, panned so the point sits at [yFraction] of the height (above the detail panel). */
+    fun centredOn(lat: Double, lon: Double, yFraction: Double) =
+        PreviewView(zoom, tilePx, originX + x(lon) - widthPx / 2.0, originY + y(lat) - heightPx * yFraction)
+            .also { it.widthPx = widthPx; it.heightPx = heightPx }
 
     companion object {
         private fun wx(lon: Double, world: Double) = (lon + 180.0) / 360.0 * world

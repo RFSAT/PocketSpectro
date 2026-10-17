@@ -19,6 +19,32 @@ interface ByteTransport {
     fun read(buffer: ByteArray, offset: Int, length: Int, timeoutMs: Int): Int
 
     fun close()
+
+    /** Writes to a specific OUT endpoint address (multi-endpoint devices). Defaults to [write]. */
+    @Throws(IOException::class)
+    fun writeTo(endpoint: Int, data: ByteArray, timeoutMs: Int) = write(data, timeoutMs)
+
+    /** Reads from a specific IN endpoint address (e.g. 0x81, 0x82, 0x86). Defaults to [read]. */
+    @Throws(IOException::class)
+    fun readFrom(endpoint: Int, buffer: ByteArray, offset: Int, length: Int, timeoutMs: Int): Int =
+        read(buffer, offset, length, timeoutMs)
+
+    /** True when the device has an endpoint with this address. */
+    fun hasEndpoint(endpoint: Int): Boolean = true
+}
+
+/** [readFully] from a specific IN endpoint. */
+fun ByteTransport.readFullyFrom(endpoint: Int, length: Int, timeoutMs: Int): ByteArray {
+    val buf = ByteArray(length)
+    var got = 0
+    val deadline = System.nanoTime() + timeoutMs * 1_000_000L
+    while (got < length) {
+        val left = ((deadline - System.nanoTime()) / 1_000_000L).toInt()
+        if (left <= 0) throw IOException("USB read timed out on 0x%02X (%d of %d bytes)".format(endpoint, got, length))
+        val n = readFrom(endpoint, buf, got, length - got, left)
+        if (n > 0) got += n
+    }
+    return buf
 }
 
 /** Reads exactly [length] bytes or throws [IOException] once [timeoutMs] has elapsed. */

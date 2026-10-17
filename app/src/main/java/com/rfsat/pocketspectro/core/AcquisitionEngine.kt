@@ -5,6 +5,7 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import com.rfsat.pocketspectro.data.AppSettings
 import com.rfsat.pocketspectro.data.FireEventJournal
+import com.rfsat.pocketspectro.data.DetectionContext
 import com.rfsat.pocketspectro.data.LocationTracker
 import com.rfsat.pocketspectro.data.LoggedSpectrum
 import com.rfsat.pocketspectro.data.SessionLogger
@@ -343,10 +344,10 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
         }
 
         // Fire detection (Pi: raw single scan, so default input is the raw mean). NIR units only.
-        val fire = if (info.fireCapable) {
-            val fireBase = if (s.fireUseDarkCorrected && dark != null) corrected else meanRaw
-            FireDetector.analyse(wl, Processing.boxcar(fireBase, s.boxcarWidth), s.fire)
+        val fireCounts = if (info.fireCapable) {
+            Processing.boxcar(if (s.fireUseDarkCorrected && dark != null) corrected else meanRaw, s.boxcarWidth)
         } else null
+        val fire = fireCounts?.let { FireDetector.analyse(wl, it, s.fire) }
         confirmer.required = s.fire.confirmFrames
         val confirmed = fire != null && confirmer.update(fire.fire)
         if (_fireArmed.value && fire != null) {
@@ -355,7 +356,9 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
         if (confirmed && fire != null) {
             val fix = if (store.value.gpsTagging) location.current() else null
             try {
-                if (journal.record(System.currentTimeMillis(), fix, fire, logger?.dir?.name, risingEdge = !lastFireConfirmed) != null) {
+                val ctx = DetectionContext(info.model, info.serial, s.integrationUs, avg.count, s.fire.thresholdPercent,
+                    s.fire.confirmFrames, wl, fireCounts ?: meanRaw)
+                if (journal.record(System.currentTimeMillis(), fix, fire, logger?.dir?.name, risingEdge = !lastFireConfirmed, ctx = ctx) != null) {
                     _journalVersion.value++
                 }
             } catch (e: IOException) {

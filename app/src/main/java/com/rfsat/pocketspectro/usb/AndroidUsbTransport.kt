@@ -19,7 +19,25 @@ class AndroidUsbTransport private constructor(
     private val iface: UsbInterface,
     private val epOut: UsbEndpoint,
     private val epIn: UsbEndpoint,
+    /** Every bulk endpoint of the claimed interface, by address (0x01, 0x81, 0x82, 0x86 ...). */
+    private val byAddress: Map<Int, UsbEndpoint>,
 ) : ByteTransport {
+
+    override fun writeTo(endpoint: Int, data: ByteArray, timeoutMs: Int) {
+        val ep = byAddress[endpoint] ?: epOut
+        var sent = 0
+        while (sent < data.size) {
+            val n = connection.bulkTransfer(ep, data, sent, data.size - sent, timeoutMs)
+            if (n <= 0) throw IOException("USB write to 0x%02X failed".format(endpoint))
+            sent += n
+        }
+    }
+
+    override fun readFrom(endpoint: Int, buffer: ByteArray, offset: Int, length: Int, timeoutMs: Int): Int =
+        connection.bulkTransfer(byAddress[endpoint] ?: epIn, buffer, offset, length, timeoutMs.coerceAtLeast(1))
+
+    override fun hasEndpoint(endpoint: Int) = byAddress.containsKey(endpoint)
+
 
     override fun write(data: ByteArray, timeoutMs: Int) {
         var sent = 0
@@ -46,9 +64,11 @@ class AndroidUsbTransport private constructor(
                 val iface = device.getInterface(i)
                 var out: UsbEndpoint? = null
                 var inp: UsbEndpoint? = null
+                val all = HashMap<Int, UsbEndpoint>()
                 for (e in 0 until iface.endpointCount) {
                     val ep = iface.getEndpoint(e)
                     if (ep.type != UsbConstants.USB_ENDPOINT_XFER_BULK) continue
+                    all[ep.address] = ep
                     if (ep.direction == UsbConstants.USB_DIR_OUT && out == null) out = ep
                     if (ep.direction == UsbConstants.USB_DIR_IN && inp == null) inp = ep
                 }
@@ -58,7 +78,7 @@ class AndroidUsbTransport private constructor(
                         conn.close()
                         throw IOException("Could not claim USB interface $i")
                     }
-                    return AndroidUsbTransport(conn, iface, out, inp)
+                    return AndroidUsbTransport(conn, iface, out, inp, all)
                 }
             }
             throw IOException("No bulk endpoint pair on ${device.deviceName}")

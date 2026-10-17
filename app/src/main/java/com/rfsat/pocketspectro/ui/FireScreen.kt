@@ -58,6 +58,10 @@ fun FireScreen(engine: AcquisitionEngine) {
             Text(title, fontSize = 28.sp, fontWeight = FontWeight.Bold,
                 color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White,
                 textAlign = TextAlign.Center)
+            if (r != null && (confirmed || r.fire)) {
+                Text("Confidence %.0f %%".format(Locale.US, r.confidence.score), fontWeight = FontWeight.SemiBold,
+                    color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White)
+            }
             if (r != null) {
                 Text("K I emission ${"%.1f".format(Locale.US, r.maxPercent)} % above ${if (r.baselineMode == FireDetector.Baseline.LOCAL_CONTINUUM) "continuum" else "mean"} (threshold ${s.fire.thresholdPercent} %)",
                     color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White)
@@ -118,9 +122,12 @@ fun FireScreen(engine: AcquisitionEngine) {
                 KeyValue("Windows", if (s.fire.windowMode == FireDetector.WindowMode.WAVELENGTH)
                     "%.2f ± %.1f, %.2f ± %.1f nm".format(Locale.US, s.fire.centre1Nm, s.fire.halfWidthNm, s.fire.centre2Nm, s.fire.halfWidthNm)
                 else "pixels ${b1.first}–${b1.last}, ${b2.first}–${b2.last} (Pi)")
+                val c = r.confidence
+                KeyValue("Confidence", "%.0f %%  (S/N %.1f / %.1f, ratio %s)".format(Locale.US, c.score, c.snr1, c.snr2,
+                    if (c.ratio.isFinite()) "%.2f".format(Locale.US, c.ratio) else "—"))
                 KeyValue("Peak finder", if (s.fire.algorithm == FireDetector.Algorithm.PI_IDENTICAL) "Pi-identical" else "Local maximum")
             }
-            Section("Other maxima ≥ 1 % above spectrum mean") {
+            Section(if (s.fire.baseline == FireDetector.Baseline.GLOBAL_MEAN) "Other maxima ≥ 1 % above spectrum mean" else "Other maxima ≥ 1 % above local continuum") {
                 val list = if (showAll) r.otherMaxima else r.otherMaxima.sortedByDescending { it.percentAboveFloor }.take(5)
                 for (p in list) KeyValue("%.2f nm".format(Locale.US, p.wavelengthNm), "%.0f counts  (+%.1f %%)".format(Locale.US, p.intensity, p.percentAboveFloor))
                 if (r.otherMaxima.size > 5) TextButton(onClick = { showAll = !showAll }) {

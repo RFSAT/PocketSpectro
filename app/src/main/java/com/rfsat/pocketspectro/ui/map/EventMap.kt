@@ -91,6 +91,7 @@ fun EventMap(
     val didInitialCamera = remember { mutableStateOf(false) }
     val lastFit = remember { mutableStateOf(fitKey) }
     val lastRecenter = remember { mutableStateOf(recenterKey) }
+    val lastSelected = remember { mutableStateOf<FireEvent?>(null) }
     val currentEvents = rememberUpdatedState(events)
     val currentTap = rememberUpdatedState(onEventTap)
 
@@ -151,6 +152,14 @@ fun EventMap(
                 fitCamera(map, tracks, events, own, animate = true)
                 lastFit.value = fitKey
             }
+            if (selected != null && selected != lastSelected.value) {
+                // Keep the opened detection visible above the detail panel (at ~15 % of the height).
+                val screen = map.projection.toScreenLocation(LatLng(selected.latitude, selected.longitude))
+                val shift = mv.height * (0.5f - 0.15f)
+                val target = map.projection.fromScreenLocation(android.graphics.PointF(screen.x, screen.y + shift))
+                map.animateCamera(CameraUpdateFactory.newLatLng(target))
+            }
+            lastSelected.value = selected
             if (recenterKey != lastRecenter.value) {
                 own?.let {
                     map.animateCamera(CameraUpdateFactory.newCameraPosition(

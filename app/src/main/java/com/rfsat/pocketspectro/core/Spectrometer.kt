@@ -89,7 +89,8 @@ class ObpSpectrometer private constructor(
                 val w = Calibration.binnedWavelengths(wl, model.pixels, 0)
                 name = DeviceCatalog.stsVariant(w.first(), w.last())
             }
-            val fireCapable = name == "STS-NIR"
+            val fireCapable = name == "STS-NIR" || (model.productId != StsProtocol.PRODUCT_ID_STS &&
+                DeviceCatalog.coversPotassium(DeviceInfo(name, serial, model.pixels, 0, 0, wl, null, model.maxCounts, false)))
             val info = DeviceInfo(
                 model = name,
                 serial = serial,
@@ -111,8 +112,12 @@ class ObpSpectrometer private constructor(
 /** Picks the driver for a catalogued model, or explains why it can't be used yet. */
 object SpectrometerFactory {
     @Throws(IOException::class)
-    fun open(io: ByteTransport, model: DeviceCatalog.Model): Spectrometer = when {
-        model.protocol == DeviceCatalog.Protocol.OBP && model.usable -> ObpSpectrometer.open(io, model)
-        else -> throw IOException("${model.name} recognised (${model.protocol.label}); ${model.support.label.lowercase()} in this version")
+    fun open(io: ByteTransport, model: DeviceCatalog.Model): Spectrometer {
+        if (!model.usable) throw IOException("${model.name} recognised (${model.protocol.label}); driver planned")
+        return when (model.protocol) {
+            DeviceCatalog.Protocol.OBP -> ObpSpectrometer.open(io, model)
+            DeviceCatalog.Protocol.OOI -> OoiSpectrometer.open(io, model)
+            DeviceCatalog.Protocol.OBP2 -> Obp2Spectrometer.open(io, model)
+        }
     }
 }

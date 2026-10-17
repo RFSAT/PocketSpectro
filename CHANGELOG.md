@@ -1,6 +1,25 @@
 # Changelog
 
-## 1.0.0 (build 1), October 2026
+Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch number with fixes;
+versionCode rises with every build that leaves the dev machine.
+
+## 1.1.0 (build 2), October 2026
+- Drivers for the classic Ocean family (OOI protocol): USB2000+ / Flame-S, USB4000 / Flame-T, USB650, USB2000,
+  HR2000+, HR4000, Maya2000 Pro, Torus, Jaz; NIRQuest256/512 with external power. Experimental (ported, not yet
+  hardware-tested).
+- Driver for the Ocean ST / SR2/4/6 / HR2/4/6 generation (OBP2 protocol, USB-C). Experimental.
+- Ocean HDX enabled on the OBP driver (experimental).
+- STS: falls back to the newer raw-spectrum request (0x00101100) if a unit refuses the original one.
+- Fire detection offered on any NIR unit whose calibration starts at 600 nm or more and covers 766-770 nm.
+- Detector confidence (0-100 %) from line signal-to-noise, doublet presence and ratio, and peak position;
+  shown live on the Fire screen and logged.
+- Each journalled detection stores its spectrum and measurement details; tapping it on the map opens the
+  spectrum, confidence breakdown, spectrometer, integration and GPS details.
+- "Other maxima" measured against the local continuum (running median) instead of the spectrum mean
+  (the Pi preset keeps the original rule).
+- Map screenshots in the test suite render real tiles.
+
+## 1.0.0 (build 1), October 2026 (first build)
 First version: port of the Raspberry Pi Zero W "Wi-Fi STS-NIR" web server to a native Android app,
 named PocketSpectro (com.PocketSpectro) to cover Ocean USB spectrometers generally.
 - Direct USB-OTG control of the STS (Ocean Binary Protocol 0x1100), ported from SeaBreeze.

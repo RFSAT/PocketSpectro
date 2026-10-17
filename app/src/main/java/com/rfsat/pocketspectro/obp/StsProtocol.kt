@@ -11,11 +11,13 @@ import java.io.IOException
  *
  * Not thread-safe: the caller serialises access (one acquisition loop owns the device).
  */
-class StsProtocol(private val io: ByteTransport) {
+class StsProtocol(private val io: ByteTransport, private val protocolVersion: Int = ObpMessage.PROTOCOL_VERSION) {
+    /** Spectrum request code; switches to GET_RAW_SPECTRUM_NOW if a unit refuses the original one. */
+    private var spectrumCode = ObpTypes.GET_SPECTRUM_NOW
 
     /** Sends a query and returns the response data, or null on NACK / unexpected type. */
     fun query(type: Int, data: ByteArray = ByteArray(0), timeoutMs: Int = CONTROL_TIMEOUT_MS): ByteArray? {
-        io.write(ObpMessage(type, data = data).toBytes(), timeoutMs)
+        io.write(ObpMessage(type, protocolVersion = protocolVersion, data = data).toBytes(), timeoutMs)
         val reply = readMessage(timeoutMs)
         if (reply.isNack || reply.messageType != type) return null
         return reply.data
@@ -23,7 +25,7 @@ class StsProtocol(private val io: ByteTransport) {
 
     /** Sends a command with ACK requested; true when the device acknowledged it. */
     fun command(type: Int, data: ByteArray = ByteArray(0), timeoutMs: Int = CONTROL_TIMEOUT_MS): Boolean {
-        io.write(ObpMessage(type, flags = ObpMessage.FLAG_ACK_REQUESTED, data = data).toBytes(), timeoutMs)
+        io.write(ObpMessage(type, flags = ObpMessage.FLAG_ACK_REQUESTED, protocolVersion = protocolVersion, data = data).toBytes(), timeoutMs)
         val reply = readMessage(timeoutMs)
         return !reply.isNack && reply.messageType == type && reply.isAck
     }
@@ -103,9 +105,16 @@ class StsProtocol(private val io: ByteTransport) {
      */
     fun readSpectrum(pixels: Int, integrationUs: Long): IntArray {
         val timeout = (integrationUs / 1000L).toInt() + SPECTRUM_MARGIN_MS
-        io.write(ObpMessage(ObpTypes.GET_SPECTRUM_NOW).toBytes(), CONTROL_TIMEOUT_MS)
-        val reply = readMessage(timeout)
-        if (reply.messageType != ObpTypes.GET_SPECTRUM_NOW) {
+        io.write(ObpMessage(spectrumCode, protocolVersion = protocolVersion).toBytes(), CONTROL_TIMEOUT_MS)
+        var reply = readMessage(timeout)
+        if (reply.isNack && spectrumCode == ObpTypes.GET_SPECTRUM_NOW) {
+            // The 2015 SeaBreeze used by the Pi asks for 0x00101000; current python-seabreeze asks STS-class
+            // units for 0x00101100. Fall back once and remember which one this unit answers.
+            spectrumCode = ObpTypes.GET_RAW_SPECTRUM_NOW
+            io.write(ObpMessage(spectrumCode, protocolVersion = protocolVersion).toBytes(), CONTROL_TIMEOUT_MS)
+            reply = readMessage(timeout)
+        }
+        if (reply.isNack || reply.messageType != spectrumCode) {
             throw IOException("Unexpected reply 0x%08X to spectrum request".format(reply.messageType))
         }
         val d = reply.data

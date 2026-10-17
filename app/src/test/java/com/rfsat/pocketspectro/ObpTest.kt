@@ -19,6 +19,8 @@ class FakeSts(
     val pixels: Int = 1024,
     /** Deliver replies in chunks of this size to exercise reassembly. */
     val chunk: Int = 64,
+    /** Emulate a unit that only answers the newer GET_RAW_SPECTRUM_NOW (0x00101100). */
+    val rawSpectrumOnly: Boolean = false,
 ) : ByteTransport {
     val sent = ArrayList<ObpMessage>()
     private val pending = ArrayDeque<Byte>()
@@ -39,7 +41,7 @@ class FakeSts(
             ObpTypes.SET_ITIME_USEC -> { integrationUs = ObpMessage.getU32(m.data, 0); ObpMessage(m.messageType, ackFlags) }
             ObpTypes.SET_SHUTTER -> { shutterOpen = m.data[0] != 0.toByte(); ObpMessage(m.messageType, ackFlags) }
             ObpTypes.SET_TRIG_MODE, ObpTypes.SET_BINNING_FACTOR -> ObpMessage(m.messageType, ackFlags)
-            ObpTypes.GET_SPECTRUM_NOW -> {
+            ObpTypes.GET_SPECTRUM_NOW, ObpTypes.GET_RAW_SPECTRUM_NOW -> if (rawSpectrumOnly && m.messageType == ObpTypes.GET_SPECTRUM_NOW) nack(m) else {
                 val d = ByteArray(pixels * 2)
                 for (i in 0 until pixels) { val v = 1000 + i; d[2 * i] = (v and 0xFF).toByte(); d[2 * i + 1] = (v shr 8).toByte() }
                 resp(m, d)
@@ -115,6 +117,14 @@ class ObpTest {
 
     private val stsModel get() = com.rfsat.pocketspectro.core.DeviceCatalog.find(0x2457, 0x4000)!!
 
+    @Test fun spectrumRequestFallsBackToRawCode() {
+        val fake = FakeSts(rawSpectrumOnly = true)
+        val sts = StsProtocol(fake)
+        assertEquals(1024, sts.readSpectrum(1024, 10_000).size)
+        assertEquals(1024, sts.readSpectrum(1024, 10_000).size) // remembers the working code
+        assertEquals(1, fake.sent.count { it.messageType == ObpTypes.GET_SPECTRUM_NOW })
+    }
+
     @Test fun integrationTimeClampedToModel() {
         val fake = FakeSts()
         com.rfsat.pocketspectro.core.ObpSpectrometer.open(fake, stsModel).setIntegrationTimeMicros(1)
@@ -134,7 +144,7 @@ class ObpTest {
     @Test fun catalogueKnowsOceanFamilies() {
         val c = com.rfsat.pocketspectro.core.DeviceCatalog
         assertTrue(c.find(0x2457, 0x4000)!!.usable)
-        assertFalse(c.find(0x2457, 0x1022)!!.usable) // USB4000: driver planned
+        assertTrue(c.find(0x2457, 0x1022)!!.usable) // USB4000: OOI driver (experimental)
         assertEquals(com.rfsat.pocketspectro.core.DeviceCatalog.Protocol.OBP2, c.find(0x0999, 0x1000)!!.protocol) // Ocean ST
         assertNull(c.find(0x2457, 0x9999))
     }

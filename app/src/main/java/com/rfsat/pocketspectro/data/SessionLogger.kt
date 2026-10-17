@@ -101,14 +101,15 @@ class SessionLogger(
         fix?.let { addTrackPoint(it) }
         val w = fireCsv ?: File(dir, "fire.csv").bufferedWriter().also { w ->
             w.write("time_utc,epoch_ms,latitude,longitude,altitude_m,accuracy_m,speed_ms,bearing_deg," +
-                "mean_floor,baseline_mode,peak1_nm,peak1_counts,peak1_baseline,peak1_pct,peak2_nm,peak2_counts,peak2_baseline,peak2_pct,fire,confirmed")
+                "mean_floor,baseline_mode,peak1_nm,peak1_counts,peak1_baseline,peak1_pct,peak2_nm,peak2_counts,peak2_baseline,peak2_pct,confidence,snr1,snr2,fire,confirmed")
             w.newLine()
             fireCsv = w
         }
         w.write("${iso(timeMs)},$timeMs,${fixColumns(fix)},")
-        w.write("%.1f,%s,%.3f,%.1f,%.1f,%.2f,%.3f,%.1f,%.1f,%.2f,%d,%d".format(
+        w.write("%.1f,%s,%.3f,%.1f,%.1f,%.2f,%.3f,%.1f,%.1f,%.2f,%.1f,%.2f,%.2f,%d,%d".format(
             Locale.US, r.floor, r.baselineMode.name, r.window1.wavelengthNm, r.window1.intensity, r.window1.baseline, r.window1.percentAboveFloor,
             r.window2.wavelengthNm, r.window2.intensity, r.window2.baseline, r.window2.percentAboveFloor,
+            r.confidence.score, r.confidence.snr1, r.confidence.snr2,
             if (r.fire) 1 else 0, if (confirmed) 1 else 0,
         ))
         w.newLine()
