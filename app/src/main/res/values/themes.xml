@@ -3,5 +3,4 @@
         <item name="android:windowBackground">@color/bg</item>
     </style>
     <color name="bg">#FF121416</color>
-    <color name="ic_bg">#FF1A1D20</color>
 </resources>

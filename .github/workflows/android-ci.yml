@@ -29,8 +29,10 @@ jobs:
 
       - name: Read app version
         run: |
-          echo "APP_VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_ENV"
-          echo "APP_BUILD=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)" >> "$GITHUB_ENV"
+          V=$(grep -oP 'val appVersion = "\K[^"]+' app/build.gradle.kts)
+          IFS=. read -r MA MI PA <<< "$V"
+          echo "APP_VERSION=$V" >> "$GITHUB_ENV"
+          echo "APP_BUILD=$((MA * 10000 + MI * 100 + PA))" >> "$GITHUB_ENV"
 
       - name: Unit tests (protocol, drivers, processing, fire detection)
         run: ./gradlew --no-daemon :app:testDebugUnitTest

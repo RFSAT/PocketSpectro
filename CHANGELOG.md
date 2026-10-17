@@ -1,7 +1,18 @@
 # Changelog
 
-Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch number with fixes;
-versionCode rises with every build that leaves the dev machine.
+Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch number with fixes.
+Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
+(1*10000 + MINOR*100 + PATCH), so it rises with every version.
+
+## 1.1.2 (build 10102), October 2026
+- Play version code derived from the version number, so a new version can never reuse a code Play has
+  already seen (Play rejected a repeated code). Codes now run 10102, 10103, ... 10200 for 1.2.0.
+
+## 1.1.1 (build 3), October 2026
+- New app icon: a spectrum coloured from violet to near-infrared with the potassium doublet; the same artwork
+  as the Google Play icon (`art/icon.svg`, `art/play_icon_512.png`). Android 13+ themed (monochrome) icon added.
+- Google Play feature graphic (`art/feature_graphic_1024x500.png`), rendered with the icon by `art/make_store_art.py`.
+- Google Play listing screenshots (9:16, no version shown) rendered by the screenshot tests into `docs/play/`.
 
 ## 1.1.0 (build 2), October 2026
 - Drivers for the classic Ocean family (OOI protocol): USB2000+ / Flame-S, USB4000 / Flame-T, USB650, USB2000,

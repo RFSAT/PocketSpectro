@@ -1,0 +1,8 @@
+<!-- Android 13+ themed icon: the trace and axis only. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M27,74 L27,68 C33,66 37,58 44,54 C50,51 55,50 59,52 L62,53.5 L64.3,30 L66.6,54 L68.4,54.3 L70.6,40 L72.8,56 C75.5,60 78,64 81,66 L81,74 Z" android:fillColor="#66FFFFFF"/>
+    <path android:pathData="M27,68 C33,66 37,58 44,54 C50,51 55,50 59,52 L62,53.5 L64.3,30 L66.6,54 L68.4,54.3 L70.6,40 L72.8,56 C75.5,60 78,64 81,66" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.6" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M27,77 L81,77" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"/>
+</vector>

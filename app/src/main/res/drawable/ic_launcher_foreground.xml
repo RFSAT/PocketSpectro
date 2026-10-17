@@ -1,9 +1,25 @@
+<!-- Same artwork as art/icon.svg (the Google Play icon is rendered from that file). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <!-- axis -->
-    <path android:strokeColor="#80FFFFFF" android:strokeWidth="2" android:pathData="M30,76 L80,76 M30,76 L30,34"/>
-    <!-- spectrum with doublet -->
-    <path android:strokeColor="#FFFF6E40" android:strokeWidth="3.2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M31,70 C38,66 42,58 48,56 L52,54 L54,36 L56,55 L58,42 L60,55 L64,58 C70,61 74,66 79,69"/>
+    <!-- spectrum area, coloured violet to near-infrared -->
+    <path android:pathData="M27,74 L27,68 C33,66 37,58 44,54 C50,51 55,50 59,52 L62,53.5 L64.3,30 L66.6,54 L68.4,54.3 L70.6,40 L72.8,56 C75.5,60 78,64 81,66 L81,74 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="27" android:startY="0" android:endX="81" android:endY="0">
+                <item android:offset="0" android:color="#FF7B1FA2"/>
+                <item android:offset="0.16" android:color="#FF3949AB"/>
+                <item android:offset="0.30" android:color="#FF039BE5"/>
+                <item android:offset="0.44" android:color="#FF43A047"/>
+                <item android:offset="0.56" android:color="#FFFDD835"/>
+                <item android:offset="0.68" android:color="#FFFB8C00"/>
+                <item android:offset="0.80" android:color="#FFE53935"/>
+                <item android:offset="1" android:color="#FF7F0000"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- spectrum trace with the emission doublet -->
+    <path android:pathData="M27,68 C33,66 37,58 44,54 C50,51 55,50 59,52 L62,53.5 L64.3,30 L66.6,54 L68.4,54.3 L70.6,40 L72.8,56 C75.5,60 78,64 81,66" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.2" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <!-- wavelength axis -->
+    <path android:pathData="M27,77 L81,77" android:strokeColor="#8CFFFFFF" android:strokeWidth="1.6" android:strokeLineCap="round"/>
 </vector>

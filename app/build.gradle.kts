@@ -3,6 +3,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// The one place to change the app version.
+val appVersion = "1.1.2"
+val appVersionCode = appVersion.split(".").map { it.toInt() }.let { (a, b, c) -> a * 10000 + b * 100 + c }
+
 android {
     namespace = "com.rfsat.pocketspectro"
     compileSdk = 36
@@ -12,8 +16,11 @@ android {
         applicationId = "com.PocketSpectro"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        // Edit only appVersion (top of this file). The Play version code follows from it:
+        // 1.MINOR.PATCH -> 1*10000 + MINOR*100 + PATCH (1.1.2 -> 10102), so every new version
+        // gets a new, higher code and Play never sees the same one twice.
+        versionCode = appVersionCode
+        versionName = appVersion
     }
 
     signingConfigs {
