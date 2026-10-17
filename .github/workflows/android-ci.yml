@@ -21,6 +21,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Make Gradle wrapper executable
+        # Commits made on Windows store gradlew without the executable bit.
+        run: chmod +x gradlew
+
       - name: Unit tests (protocol, processing, fire detection)
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
@@ -60,6 +64,10 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      - name: Make Gradle wrapper executable
+        # Commits made on Windows store gradlew without the executable bit.
+        run: chmod +x gradlew
+
       - name: Render screenshots
         run: ./gradlew --no-daemon :app:testDebugUnitTest -Pscreenshots --tests '*ScreenshotTest*'
       - uses: actions/upload-artifact@v4
