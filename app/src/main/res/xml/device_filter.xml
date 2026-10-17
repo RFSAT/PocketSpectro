@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Every Ocean Optics / Ocean Insight USB spectrometer opens the app; DeviceCatalog decides
+         whether this version can drive it. 0x2457 = 9303 (classic range incl. STS, PID 0x4000),
+         0x0999 = 2457 (Ocean ST / SR / HR generation). -->
+    <usb-device vendor-id="9303" />
+    <usb-device vendor-id="2457" />
+</resources>

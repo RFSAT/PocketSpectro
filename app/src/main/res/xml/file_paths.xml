@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-files-path name="sessions" path="sessions/" />
+    <external-files-path name="events" path="events/" />
+    <files-path name="sessions_internal" path="sessions/" />
+    <files-path name="events_internal" path="events/" />
+</paths>
