@@ -1,5 +1,9 @@
 package com.rfsat.pocketspectro.ui
 
+import com.rfsat.pocketspectro.shortRes
+import com.rfsat.pocketspectro.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -52,9 +56,9 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("PocketSpectro", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 28.sp)
-            if (!StoreShots.hideVersion) Text("v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", color = muted)
-            Text("Portable spectroscopy over USB", fontSize = 13.sp)
+            Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 28.sp)
+            if (!StoreShots.hideVersion) Text(stringResource(R.string.home_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE), color = muted)
+            Text(stringResource(R.string.home_tagline), fontSize = 13.sp)
         }
 
         // Connection card with quick actions
@@ -76,9 +80,9 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
                 Text(
                     when (val c = conn) {
                         is Connection.Ready -> "${c.info.model}  ·  ${c.info.serial}"
-                        Connection.Connecting -> "Connecting…"
-                        Connection.AwaitingPermission -> "Waiting for USB permission"
-                        Connection.NoDevice -> "No spectrometer connected"
+                        Connection.Connecting -> stringResource(R.string.conn_connecting)
+                        Connection.AwaitingPermission -> stringResource(R.string.home_awaiting)
+                        Connection.NoDevice -> stringResource(R.string.home_no_device)
                         is Connection.Failed -> c.message
                     },
                     fontWeight = FontWeight.SemiBold,
@@ -86,60 +90,57 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
             }
             if (ready != null) {
                 val wl = ready.info.wavelengths()
-                KeyValue("Range", "%.0f – %.0f nm, %d pixels".format(Locale.US, wl.first(), wl.last(), ready.info.pixels))
-                KeyValue("State", buildList {
-                    add(if (running) "acquiring" else "idle")
-                    if (armed) add("fire alarm armed")
-                    if (!ready.info.fireCapable) add("no fire detection (needs a NIR unit covering 766–770 nm)")
-                    if (log.active) add("logging (${log.spectra})")
+                KeyValue(stringResource(R.string.home_range), pluralStringResource(R.plurals.home_range_value, ready.info.pixels,
+                    "%.0f".format(Locale.US, wl.first()), "%.0f".format(Locale.US, wl.last()), ready.info.pixels))
+                val sAcq = stringResource(R.string.state_acquiring)
+                val sIdle = stringResource(R.string.state_idle)
+                val sArmed = stringResource(R.string.state_alarm_armed)
+                val sNoFire = stringResource(R.string.state_no_fire)
+                val sLog = stringResource(R.string.state_logging, log.spectra)
+                KeyValue(stringResource(R.string.home_state), buildList {
+                    add(if (running) sAcq else sIdle)
+                    if (armed) add(sArmed)
+                    if (!ready.info.fireCapable) add(sNoFire)
+                    if (log.active) add(sLog)
                 }.joinToString(", "))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { engine.setRunning(true); onOpenTab(Tab.LIVE) }) { Text("Live spectrum") }
-                    if (ready.info.fireCapable) OutlinedButton(onClick = { onOpenTab(Tab.FIRE) }) { Text("Fire detection") }
+                    Button(onClick = { engine.setRunning(true); onOpenTab(Tab.LIVE) }) { Text(stringResource(R.string.home_btn_live)) }
+                    if (ready.info.fireCapable) OutlinedButton(onClick = { onOpenTab(Tab.FIRE) }) { Text(stringResource(R.string.home_btn_fire)) }
                 }
             } else {
-                Text("Plug a supported spectrometer into the phone's USB-C port with a data-capable OTG cable " +
-                    "(micro-USB units need a micro-USB to USB-C OTG cable), or turn on the simulator in Setup.",
+                Text(stringResource(R.string.home_plug_help),
                     style = MaterialTheme.typography.bodySmall, color = muted)
-                OutlinedButton(onClick = onReconnect) { Text("Retry connection") }
+                OutlinedButton(onClick = onReconnect) { Text(stringResource(R.string.home_btn_retry)) }
             }
         }
 
         Text(
-            "PocketSpectro turns an Android phone into a portable console for Ocean Optics USB spectrometers, " +
-                "connected directly to the phone's USB-C port. It controls the spectrometer, shows live spectra in " +
-                "counts, absorbance or transmittance/reflectance with dark, reference, averaging, smoothing and " +
-                "nonlinearity correction, and logs GPS-tagged spectra for later analysis. With a near-infrared " +
-                "spectrometer that covers 766–770 nm, a fire-detection mode watches for the potassium emission " +
-                "doublet that burning vegetation produces, with an audible alarm and a map of detections, for " +
-                "hand-held or vehicle-based surveys.",
+            stringResource(R.string.home_about),
             textAlign = TextAlign.Justify, style = MaterialTheme.typography.bodyMedium,
         )
 
         HorizontalDivider()
 
-        LinkRow("Developer", "RFSAT Limited", "www.rfsat.com") { openUrl("https://www.rfsat.com") }
+        LinkRow(stringResource(R.string.home_developer), "RFSAT Limited", "www.rfsat.com") { openUrl("https://www.rfsat.com") }
         Text(
-            "RFSAT Limited is a non-profit research and development SME based in Dublin, Ireland, with a research " +
-                "office in Athens, Greece. It carries out applied research and technology development under national " +
-                "and EU funding programmes, including Horizon Europe, spanning digital signal processing, " +
-                "micro-embedded sensing, autonomous systems, GNSS positioning, and environmental and e-Health monitoring.",
+            stringResource(R.string.home_rfsat),
             textAlign = TextAlign.Justify, style = MaterialTheme.typography.bodySmall, color = muted,
         )
         if (ready != null) {
-            LinkRow("Spectrometer", "${ready.info.model} · ${ready.info.serial}", "oceanoptics.com") { openUrl("https://www.oceanoptics.com") }
-            KeyValue("Interface", "USB host (OTG), ${ready.info.interfaceLabel}")
+            LinkRow(stringResource(R.string.home_spectrometer), "${ready.info.model} · ${ready.info.serial}", "oceanoptics.com") { openUrl("https://www.oceanoptics.com") }
+            KeyValue(stringResource(R.string.home_interface), stringResource(R.string.home_interface_value,
+                if (ready.info.simulated) stringResource(R.string.iface_simulated) else ready.info.interfaceLabel))
         } else {
-            LinkRow("Spectrometers", "Ocean Optics / Ocean Insight USB", "oceanoptics.com") { openUrl("https://www.oceanoptics.com") }
-            KeyValue("Interface", "USB host (OTG)")
+            LinkRow(stringResource(R.string.home_spectrometers), stringResource(R.string.home_spectrometers_value), "oceanoptics.com") { openUrl("https://www.oceanoptics.com") }
+            KeyValue(stringResource(R.string.home_interface), stringResource(R.string.home_interface_usb))
         }
-        KeyValue("Licence", "MIT © 2026 RFSAT Limited")
-        KeyValue("Credits", "USB protocols ported from Ocean Optics SeaBreeze (MIT)")
+        KeyValue(stringResource(R.string.home_licence), "MIT © 2026 RFSAT Limited")
+        KeyValue(stringResource(R.string.home_credits), stringResource(R.string.home_credits_value))
 
         HorizontalDivider()
 
-        Text("Spectrometers", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-        Text("Any Ocean Optics / Ocean Insight USB spectrometer is recognised when plugged in. Status in this version:",
+        Text(stringResource(R.string.home_spectrometers), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.home_support_intro),
             style = MaterialTheme.typography.bodySmall, color = muted)
         val groups = DeviceCatalog.models.groupBy { it.support }
         for (support in DeviceCatalog.Support.entries) {
@@ -150,15 +151,14 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
                 else -> muted
             }
             Row {
-                Text(support.short, Modifier.weight(0.38f), color = colour, style = MaterialTheme.typography.bodySmall,
+                Text(stringResource(support.shortRes()), Modifier.weight(0.38f), color = colour, style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold)
                 Text(list.joinToString(", ") { it.name }, Modifier.weight(0.62f), style = MaterialTheme.typography.bodySmall)
             }
         }
-        Text("Experimental: driver ported from Ocean's SeaBreeze sources, not yet tested on that hardware. " +
-            "Needs external power: also needs a powered USB hub or the unit's own supply.",
+        Text(stringResource(R.string.home_support_legend),
             style = MaterialTheme.typography.bodySmall, color = muted)
-        Text("Not affiliated with or endorsed by Ocean Optics / Ocean Insight.", style = MaterialTheme.typography.bodySmall,
+        Text(stringResource(R.string.home_not_affiliated), style = MaterialTheme.typography.bodySmall,
             color = muted.copy(alpha = 0.7f), fontSize = 11.sp)
     }
 }

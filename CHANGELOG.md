@@ -4,6 +4,15 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH), so it rises with every version.
 
+## 1.1.4 (build 10104), October 2026
+- All on-screen text moved into `res/values/strings.xml` (about 370 entries, with plurals and translator
+  notes), so Google Play's automatic translation can translate the interface. The app itself is unchanged
+  in English.
+- Not translated on purpose: the app name, units, file names, CSV/KML/session-file contents, map
+  attributions and low-level driver error messages (kept in English for support).
+- Small fixes found on the way: the Log screen now notices a newly connected spectrometer at once, and the
+  detection date on the map follows the phone's language.
+
 ## 1.1.3 (build 10103), October 2026
 - Release build shrunk with R8 (code and resources). The mapping file travels inside the bundle, so
   Play shows readable crash and ANR stack traces. The app's own classes keep their names, so saved

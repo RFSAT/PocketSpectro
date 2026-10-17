@@ -1,5 +1,7 @@
 package com.rfsat.pocketspectro.ui.map
 
+import com.rfsat.pocketspectro.R
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +35,7 @@ import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 
 /** Base layers, the same three raster sources as DBM's navigation map (no API key needed). */
-enum class MapLayer(val label: String) { STREET("Street"), SATELLITE("Satellite"), TERRAIN("Terrain") }
+enum class MapLayer(@StringRes val label: Int) { STREET(R.string.map_street), SATELLITE(R.string.map_satellite), TERRAIN(R.string.map_terrain) }
 
 object MapStyles {
     private fun raster(tiles: String, attribution: String, maxZoom: Int = 19) = """

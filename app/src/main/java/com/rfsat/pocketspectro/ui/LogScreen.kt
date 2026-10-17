@@ -1,5 +1,8 @@
 package com.rfsat.pocketspectro.ui
 
+import com.rfsat.pocketspectro.labelRes
+import com.rfsat.pocketspectro.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,8 +30,8 @@ fun LogTab(engine: AcquisitionEngine, onRequestLocation: () -> Unit, initialSess
     var page by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(if (initialSessions) 1 else 0) }
     Column {
         androidx.compose.material3.SecondaryTabRow(selectedTabIndex = page) {
-            androidx.compose.material3.Tab(selected = page == 0, onClick = { page = 0 }, text = { Text("Recording") })
-            androidx.compose.material3.Tab(selected = page == 1, onClick = { page = 1 }, text = { Text("Sessions") })
+            androidx.compose.material3.Tab(selected = page == 0, onClick = { page = 0 }, text = { Text(stringResource(R.string.log_tab_recording)) })
+            androidx.compose.material3.Tab(selected = page == 1, onClick = { page = 1 }, text = { Text(stringResource(R.string.log_tab_sessions)) })
         }
         if (page == 0) LogScreen(engine, onRequestLocation) else ResultsScreen(engine)
     }
@@ -40,66 +43,66 @@ fun LogScreen(engine: AcquisitionEngine, onRequestLocation: () -> Unit) {
     val log by engine.log.collectAsState()
     val frame by engine.frame.collectAsState()
     val fix by engine.location.fix.collectAsState()
+    val conn by engine.connection.collectAsState()
+    val res = androidx.compose.ui.platform.LocalResources.current
 
     Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 6.dp)) {
-        Section("Status") {
+        Section(stringResource(R.string.log_sec_status)) {
             if (log.active) {
-                KeyValue("State", if (log.paused) "Paused" else "Logging")
-                KeyValue("Spectra saved", if (log.max > 0) "${log.spectra} of ${log.max}" else "${log.spectra}")
-                KeyValue("Fire detections", "${log.detections}")
-                KeyValue("Folder", log.folder ?: "")
+                KeyValue(stringResource(R.string.home_state), stringResource(if (log.paused) R.string.log_paused else R.string.log_logging))
+                KeyValue(stringResource(R.string.log_spectra_saved),
+                    if (log.max > 0) stringResource(R.string.log_n_of_max, log.spectra, log.max) else "${log.spectra}")
+                KeyValue(stringResource(R.string.log_fire_detections), "${log.detections}")
+                KeyValue(stringResource(R.string.log_folder), log.folder ?: "")
             } else {
-                Text("Not logging. Settings below apply to the next session.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.log_not_logging), style = MaterialTheme.typography.bodySmall)
             }
-            KeyValue("GPS", when {
-                !s.gpsTagging -> "tagging off"
-                !engine.location.hasPermission() -> "no permission"
-                fix == null -> "waiting for fix…"
+            KeyValue(stringResource(R.string.log_gps), when {
+                !s.gpsTagging -> stringResource(R.string.gps_off)
+                !engine.location.hasPermission() -> stringResource(R.string.gps_no_permission)
+                fix == null -> stringResource(R.string.gps_waiting)
                 else -> "%.6f, %.6f  ±%s m".format(Locale.US, fix!!.latitude, fix!!.longitude,
                     fix!!.accuracyM?.let { "%.0f".format(Locale.US, it) } ?: "?")
             })
             if (s.gpsTagging && !engine.location.hasPermission()) {
-                OutlinedButton(onClick = onRequestLocation) { Text("Allow location") }
+                OutlinedButton(onClick = onRequestLocation) { Text(stringResource(R.string.log_allow_location)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!log.active) {
-                    Button(onClick = { engine.startLog() }, enabled = frame != null || engine.connection.value is com.rfsat.pocketspectro.core.Connection.Ready) {
-                        Text("Start logging")
+                    Button(onClick = { engine.startLog() }, enabled = frame != null || conn is com.rfsat.pocketspectro.core.Connection.Ready) {
+                        Text(stringResource(R.string.log_start))
                     }
                 } else {
                     OutlinedButton(onClick = {
                         if (log.paused) { engine.setRunning(true); engine.pauseLog(false) } else engine.pauseLog(true)
-                    }) { Text(if (log.paused) "Resume" else "Pause") }
-                    Button(onClick = { engine.stopLog() }) { Text("Stop") }
+                    }) { Text(stringResource(if (log.paused) R.string.log_resume else R.string.log_pause)) }
+                    Button(onClick = { engine.stopLog() }) { Text(stringResource(R.string.action_stop)) }
                 }
             }
         }
 
-        Section("Acquisition control") {
+        Section(stringResource(R.string.log_sec_acq)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberField("Interval", s.sequenceIntervalSec, { v -> engine.store.update { it.copy(sequenceIntervalSec = v) } },
+                NumberField(stringResource(R.string.log_interval), s.sequenceIntervalSec, { v -> engine.store.update { it.copy(sequenceIntervalSec = v) } },
                     Modifier.weight(1f), decimals = 1, min = 0.0, max = 86400.0, suffix = "s")
-                NumberField("Max spectra", s.maxAcquisitions.toDouble(), { v -> engine.store.update { it.copy(maxAcquisitions = v.toInt()) } },
+                NumberField(stringResource(R.string.log_max_spectra), s.maxAcquisitions.toDouble(), { v -> engine.store.update { it.copy(maxAcquisitions = v.toInt()) } },
                     Modifier.weight(1f), min = 0.0, max = 1_000_000.0)
             }
-            Text("Interval 0 saves every spectrum; max 0 means no limit.", style = MaterialTheme.typography.bodySmall,
+            Text(stringResource(R.string.log_interval_help), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Picker("Save mode", SaveMode.entries, s.saveMode, { it.label }, { m -> engine.store.update { it.copy(saveMode = m) } })
+            Picker(stringResource(R.string.log_save_mode), SaveMode.entries, s.saveMode, { res.getString(it.labelRes()) }, { m -> engine.store.update { it.copy(saveMode = m) } })
             OutlinedTextField(
                 value = s.filePrefix,
                 onValueChange = { v -> engine.store.update { it.copy(filePrefix = v.filter { c -> c.isLetterOrDigit() || c == '_' || c == '-' }.take(24)) } },
-                label = { Text("File prefix (per-spectrum mode)") },
+                label = { Text(stringResource(R.string.log_file_prefix)) },
                 singleLine = true,
             )
-            SwitchRow("Tag with GPS position", s.gpsTagging, { v -> engine.store.update { it.copy(gpsTagging = v) } })
+            SwitchRow(stringResource(R.string.log_tag_gps), s.gpsTagging, { v -> engine.store.update { it.copy(gpsTagging = v) } })
         }
 
-        Section("What is written") {
+        Section(stringResource(R.string.log_sec_written)) {
             Text(
-                "Each session gets its own folder with spectra.csv (or one text file per spectrum), fire.csv with the " +
-                    "K-line analysis of every saved spectrum, detections.kml (track and confirmed detections, opens in " +
-                    "Google Earth) and session.txt with the device calibration and settings. Logged counts are the " +
-                    "processed counts shown on the Live screen (dark, nonlinearity and boxcar as flagged per row).",
+                stringResource(R.string.log_written_help),
                 style = MaterialTheme.typography.bodySmall,
             )
         }

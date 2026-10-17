@@ -1,5 +1,8 @@
 package com.rfsat.pocketspectro.ui
 
+import com.rfsat.pocketspectro.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import android.os.Build
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -94,32 +97,33 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
                     FilterChip(
                         selected = s.mapLayer == l,
                         onClick = { engine.store.update { it.copy(mapLayer = l) } },
-                        label = { Text(l.label) },
+                        label = { Text(stringResource(l.label)) },
                         colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
                     )
                 }
             }
             Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
                 Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                    Text("${events.size} fire detection${if (events.size == 1) "" else "s"} · ${tracks.size} survey track${if (tracks.size == 1) "" else "s"}",
+                    Text(pluralStringResource(R.plurals.map_detections, events.size, events.size) + " · " +
+                        pluralStringResource(R.plurals.map_tracks, tracks.size, tracks.size),
                         style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        LegendDot(FireRed, "detection"); LegendDot(Color(0xFF1E88E5), "track"); LegendDot(Color(0xFF1565C0), "you")
+                        LegendDot(FireRed, stringResource(R.string.map_legend_detection)); LegendDot(Color(0xFF1E88E5), stringResource(R.string.map_legend_track))
+                        LegendDot(Color(0xFF1565C0), stringResource(R.string.map_legend_you))
                     }
                 }
             }
         }
 
         Column(Modifier.align(Alignment.CenterEnd).padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SmallFloatingActionButton(onClick = { fitKey++ }) { Icon(Icons.Filled.FitScreen, "Show all detections") }
-            SmallFloatingActionButton(onClick = { recenterKey++ }) { Icon(Icons.Filled.MyLocation, "Go to my position") }
+            SmallFloatingActionButton(onClick = { fitKey++ }) { Icon(Icons.Filled.FitScreen, stringResource(R.string.map_show_all)) }
+            SmallFloatingActionButton(onClick = { recenterKey++ }) { Icon(Icons.Filled.MyLocation, stringResource(R.string.map_my_position)) }
         }
 
         if (events.isEmpty() && tracks.isEmpty()) {
             Surface(Modifier.align(Alignment.Center).padding(24.dp), shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)) {
-                Text("No detections yet. Confirmed fire detections with a GPS fix appear here as red markers, " +
-                    "and logged sessions draw their survey track in blue.",
+                Text(stringResource(R.string.map_empty),
                     Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -150,19 +154,19 @@ private fun EventCard(e: FireEvent, spectrum: Pair<DoubleArray, DoubleArray>?, o
         Column(Modifier.verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Fire detection", color = FireRed, fontWeight = FontWeight.Bold)
-                    Text(SimpleDateFormat("d MMM yyyy, HH:mm:ss", Locale.getDefault()).format(Date(e.timeMs)),
+                    Text(stringResource(R.string.map_fire_detection), color = FireRed, fontWeight = FontWeight.Bold)
+                    Text(SimpleDateFormat("d MMM yyyy, HH:mm:ss", androidx.core.os.ConfigurationCompat.getLocales(androidx.compose.ui.platform.LocalConfiguration.current)[0] ?: Locale.US).format(Date(e.timeMs)),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 ConfidenceBadge(e.confidence)
-                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, "Close") }
+                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, stringResource(R.string.action_close)) }
             }
 
             if (spectrum != null) {
                 val (wl, y) = spectrum
                 val lo = minOf(e.line1Nm, e.line2Nm) - 18.0; val hi = maxOf(e.line1Nm, e.line2Nm) + 18.0
                 SpectrumChart(
-                    wl, y, height = 190.dp, yUnit = "counts",
+                    wl, y, height = 190.dp, yUnit = stringResource(R.string.unit_counts),
                     xRange = if (fullRange || !lo.isFinite()) null else lo.coerceAtLeast(wl.first())..hi.coerceAtMost(wl.last()),
                     bands = listOf(
                         Band(com.rfsat.pocketspectro.proc.FireDetector.K_LINE_1_NM - 1.2, com.rfsat.pocketspectro.proc.FireDetector.K_LINE_1_NM + 1.2, FireRed.copy(alpha = 0.15f)),
@@ -171,30 +175,35 @@ private fun EventCard(e: FireEvent, spectrum: Pair<DoubleArray, DoubleArray>?, o
                     markers = listOf(e.line1Nm, e.line2Nm),
                 )
                 androidx.compose.material3.TextButton(onClick = { fullRange = !fullRange }) {
-                    Text(if (fullRange) "Zoom to K lines" else "Show full spectrum")
+                    Text(stringResource(if (fullRange) R.string.fire_zoom_k else R.string.map_show_full_spectrum))
                 }
             } else {
-                Text("No spectrum was saved with this detection.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.map_no_spectrum), style = MaterialTheme.typography.bodySmall)
             }
 
-            Text("Detector", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-            KeyValue("K I 766.5 nm", "%.2f nm  %.0f counts  %+.1f %%".format(Locale.US, e.line1Nm, e.line1Counts, e.line1Pct))
-            KeyValue("K I 769.9 nm", "%.2f nm  %.0f counts  %+.1f %%".format(Locale.US, e.line2Nm, e.line2Counts, e.line2Pct))
-            KeyValue("Compared with", if (e.baseline == "GLOBAL_MEAN") "spectrum mean (Pi rule)"
-                else "local continuum %.0f / %.0f counts".format(Locale.US, e.line1Baseline, e.line2Baseline))
-            KeyValue("Signal-to-noise", "%.1f / %.1f".format(Locale.US, e.snr1, e.snr2))
-            KeyValue("Line ratio 766/770", if (e.ratio.isFinite()) "%.2f (expected 1–2.5)".format(Locale.US, e.ratio) else "—")
-            KeyValue("Threshold", "%.1f %%, confirmed over %d scan%s".format(Locale.US, e.thresholdPct, e.confirmFrames, if (e.confirmFrames == 1) "" else "s"))
+            Text(stringResource(R.string.map_detector), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            KeyValue("K I 766.5 nm", stringResource(R.string.fire_window_value, "%.2f".format(Locale.US, e.line1Nm),
+                "%.0f".format(Locale.US, e.line1Counts), "%+.1f".format(Locale.US, e.line1Pct)))
+            KeyValue("K I 769.9 nm", stringResource(R.string.fire_window_value, "%.2f".format(Locale.US, e.line2Nm),
+                "%.0f".format(Locale.US, e.line2Counts), "%+.1f".format(Locale.US, e.line2Pct)))
+            KeyValue(stringResource(R.string.fire_compared_with), if (e.baseline == "GLOBAL_MEAN") stringResource(R.string.map_cmp_mean)
+                else stringResource(R.string.map_cmp_local, "%.0f".format(Locale.US, e.line1Baseline), "%.0f".format(Locale.US, e.line2Baseline)))
+            KeyValue(stringResource(R.string.map_snr), "%.1f / %.1f".format(Locale.US, e.snr1, e.snr2))
+            KeyValue(stringResource(R.string.map_ratio), if (e.ratio.isFinite()) stringResource(R.string.map_ratio_value, "%.2f".format(Locale.US, e.ratio)) else "—")
+            KeyValue(stringResource(R.string.set_threshold), pluralStringResource(R.plurals.map_threshold_value, e.confirmFrames,
+                "%.1f".format(Locale.US, e.thresholdPct), e.confirmFrames))
 
-            Text("Measurement", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-            KeyValue("Spectrometer", "${e.model} · ${e.serial}")
-            KeyValue("Integration", "%.1f ms × %d scan%s".format(Locale.US, e.integrationUs / 1000.0, e.scans, if (e.scans == 1) "" else "s"))
-            KeyValue("Position", "%.6f, %.6f".format(Locale.US, e.latitude, e.longitude) +
+            Text(stringResource(R.string.map_measurement), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            KeyValue(stringResource(R.string.home_spectrometer), "${e.model} · ${e.serial}")
+            KeyValue(stringResource(R.string.field_integration), pluralStringResource(R.plurals.map_integration_value, e.scans,
+                "%.1f".format(Locale.US, e.integrationUs / 1000.0), e.scans))
+            KeyValue(stringResource(R.string.map_position), "%.6f, %.6f".format(Locale.US, e.latitude, e.longitude) +
                 (e.accuracyM?.let { "  ±%.0f m".format(Locale.US, it) } ?: ""))
-            e.altitudeM?.let { KeyValue("Altitude", "%.0f m".format(Locale.US, it)) }
-            if (e.speedMs != null || e.bearingDeg != null) KeyValue("Movement",
-                listOfNotNull(e.speedMs?.let { "%.1f km/h".format(Locale.US, it * 3.6) }, e.bearingDeg?.let { "heading %.0f°".format(Locale.US, it) }).joinToString(", "))
-            KeyValue("Session", e.session?.removePrefix("session_") ?: "not logging")
+            e.altitudeM?.let { KeyValue(stringResource(R.string.map_altitude), "%.0f m".format(Locale.US, it)) }
+            val heading = e.bearingDeg?.let { stringResource(R.string.map_heading, "%.0f".format(Locale.US, it)) }
+            if (e.speedMs != null || e.bearingDeg != null) KeyValue(stringResource(R.string.map_movement),
+                listOfNotNull(e.speedMs?.let { "%.1f km/h".format(Locale.US, it * 3.6) }, heading).joinToString(", "))
+            KeyValue(stringResource(R.string.map_session), e.session?.removePrefix("session_") ?: stringResource(R.string.map_not_logging))
         }
     }
 }
@@ -210,7 +219,7 @@ private fun ConfidenceBadge(score: Double) {
     Column(Modifier.background(c.copy(alpha = 0.18f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         Text("%.0f %%".format(Locale.US, score), fontWeight = FontWeight.Bold, color = c)
-        Text("confidence", style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.map_confidence_badge), style = MaterialTheme.typography.labelSmall)
     }
 }
 

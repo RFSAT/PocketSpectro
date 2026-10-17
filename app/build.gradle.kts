@@ -4,7 +4,7 @@ plugins {
 }
 
 // The one place to change the app version.
-val appVersion = "1.1.3"
+val appVersion = "1.1.4"
 val appVersionCode = appVersion.split(".").map { it.toInt() }.let { (a, b, c) -> a * 10000 + b * 100 + c }
 
 android {
@@ -38,6 +38,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Pseudo-locales (en-XA, ar-XB) for checking that every on-screen text comes from strings.xml.
+            isPseudoLocalesEnabled = true
+        }
         release {
             // R8 shrinks the libraries (Compose, MapLibre, coroutines) and drops unused resources.
             // AGP puts the mapping file inside the bundle; Play picks it up as the deobfuscation file.

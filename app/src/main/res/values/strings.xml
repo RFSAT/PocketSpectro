@@ -1,3 +1,394 @@
-<resources>
-    <string name="app_name">PocketSpectro</string>
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- App name; a product name, keep as is. -->
+    <string name="app_name" translatable="false">PocketSpectro</string>
+    <string name="conn_usb_refused">USB permission refused</string>
+    <string name="conn_unplugged">Spectrometer unplugged</string>
+    <string name="conn_io_error">USB communication error</string>
+    <!-- %1$s is a USB vendor:product ID such as 2457:4000. -->
+    <string name="conn_unknown_device">Unknown Ocean device %1$s</string>
+    <!-- %1$s is a spectrometer model name; %2$s its support status, e.g. "Driver planned". -->
+    <string name="conn_recognised_unusable">%1$s recognised: %2$s</string>
+    <!-- Bottom navigation tab; keep very short. -->
+    <string name="tab_home">Home</string>
+    <!-- Bottom navigation tab: live spectrum. Keep very short. -->
+    <string name="tab_live">Live</string>
+    <!-- Bottom navigation tab: fire detection. Keep very short. -->
+    <string name="tab_fire">Fire</string>
+    <!-- Bottom navigation tab; keep very short. -->
+    <string name="tab_map">Map</string>
+    <!-- Bottom navigation tab: data logging. Keep very short. -->
+    <string name="tab_log">Log</string>
+    <!-- Bottom navigation tab: settings. Keep very short. -->
+    <string name="tab_setup">Setup</string>
+    <!-- Bottom navigation item and button that closes the app. Keep very short. -->
+    <string name="tab_exit">Exit</string>
+    <!-- Shown in the title bar while a fire is detected; short, upper case where the language allows. -->
+    <string name="top_fire_badge">FIRE</string>
+    <string name="conn_connecting">Connecting…</string>
+    <string name="top_allow_usb">Allow USB access to the spectrometer</string>
+    <string name="top_plug_in">Plug in a spectrometer (USB-OTG)</string>
+    <string name="exit_title">Exit PocketSpectro?</string>
+    <!-- %1$d is the number of spectra saved so far. -->
+    <plurals name="exit_logging">
+        <item quantity="one">Logging is in progress (%1$d spectrum). It will be stopped and the files closed; the spectrometer is released.</item>
+        <item quantity="other">Logging is in progress (%1$d spectra). It will be stopped and the files closed; the spectrometer is released.</item>
+    </plurals>
+    <string name="exit_idle">Acquisition stops and the spectrometer is released.</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="nc_connecting">Connecting to the spectrometer…</string>
+    <string name="nc_awaiting">Waiting for you to allow USB access.</string>
+    <!-- %1$s is a technical error message (English). -->
+    <string name="nc_failed">Connection problem: %1$s</string>
+    <string name="nc_none">No spectrometer connected.</string>
+    <string name="nc_help">Connect a supported spectrometer with a data-capable OTG cable (micro-USB to USB-C for micro-USB units). The app opens automatically when it is plugged in. To try the app without hardware, turn on the simulator in Setup.</string>
+    <string name="action_retry">Retry</string>
+    <!-- App version line; %1$s version name, %2$d build number. -->
+    <string name="home_version">v%1$s (build %2$d)</string>
+    <string name="home_tagline">Portable spectroscopy over USB</string>
+    <string name="home_awaiting">Waiting for USB permission</string>
+    <string name="home_no_device">No spectrometer connected</string>
+    <!-- Label: wavelength range of the spectrometer. -->
+    <string name="home_range">Range</string>
+    <!-- %1$s and %2$s are wavelengths in nanometres; %3$d the number of detector pixels. -->
+    <plurals name="home_range_value">
+        <item quantity="one">%1$s – %2$s nm, %3$d pixel</item>
+        <item quantity="other">%1$s – %2$s nm, %3$d pixels</item>
+    </plurals>
+    <string name="home_state">State</string>
+    <!-- Status word, lower case, joined with commas. -->
+    <string name="state_acquiring">acquiring</string>
+    <!-- Status word, lower case. -->
+    <string name="state_idle">idle</string>
+    <string name="state_alarm_armed">fire alarm armed</string>
+    <string name="state_no_fire">no fire detection (needs a NIR unit covering 766–770 nm)</string>
+    <!-- %1$d is the number of spectra logged. -->
+    <string name="state_logging">logging (%1$d)</string>
+    <string name="home_btn_live">Live spectrum</string>
+    <string name="home_btn_fire">Fire detection</string>
+    <string name="home_plug_help">Plug a supported spectrometer into the phone\'s USB-C port with a data-capable OTG cable (micro-USB units need a micro-USB to USB-C OTG cable), or turn on the simulator in Setup.</string>
+    <string name="home_btn_retry">Retry connection</string>
+    <string name="home_about">PocketSpectro turns an Android phone into a portable console for Ocean Optics USB spectrometers, connected directly to the phone\'s USB-C port. It controls the spectrometer, shows live spectra in counts, absorbance or transmittance/reflectance with dark, reference, averaging, smoothing and nonlinearity correction, and logs GPS-tagged spectra for later analysis. With a near-infrared spectrometer that covers 766–770 nm, a fire-detection mode watches for the potassium emission doublet that burning vegetation produces, with an audible alarm and a map of detections, for hand-held or vehicle-based surveys.</string>
+    <string name="home_developer">Developer</string>
+    <string name="home_rfsat">RFSAT Limited is a non-profit research and development SME based in Dublin, Ireland, with a research office in Athens, Greece. It carries out applied research and technology development under national and EU funding programmes, including Horizon Europe, spanning digital signal processing, micro-embedded sensing, autonomous systems, GNSS positioning, and environmental and e-Health monitoring.</string>
+    <string name="home_spectrometer">Spectrometer</string>
+    <string name="home_interface">Interface</string>
+    <!-- %1$s is the protocol name, e.g. "Ocean Binary Protocol". -->
+    <string name="home_interface_value">USB host (OTG), %1$s</string>
+    <string name="home_spectrometers">Spectrometers</string>
+    <string name="home_spectrometers_value">Ocean Optics / Ocean Insight USB</string>
+    <string name="home_interface_usb">USB host (OTG)</string>
+    <string name="home_licence">Licence</string>
+    <string name="home_credits">Credits</string>
+    <string name="home_credits_value">USB protocols ported from Ocean Optics SeaBreeze (MIT)</string>
+    <string name="home_support_intro">Any Ocean Optics / Ocean Insight USB spectrometer is recognised when plugged in. Status in this version:</string>
+    <string name="home_support_legend">Experimental: driver ported from Ocean\'s SeaBreeze sources, not yet tested on that hardware. Needs external power: also needs a powered USB hub or the unit\'s own supply.</string>
+    <string name="home_not_affiliated">Not affiliated with or endorsed by Ocean Optics / Ocean Insight.</string>
+    <!-- Display mode chip: raw detector counts. -->
+    <string name="mode_counts">Counts</string>
+    <!-- Display mode chip. -->
+    <string name="mode_absorbance">Absorbance</string>
+    <!-- Display mode chip: percent transmittance / reflectance. Short. -->
+    <string name="mode_transmittance_chip" formatted="false">%T / %R</string>
+    <!-- Y-axis unit: raw detector counts. -->
+    <string name="unit_counts">counts</string>
+    <string name="live_no_spectrum">No spectrum yet. Press Run or Single.</string>
+    <!-- Detector reached its maximum count; upper case warning. -->
+    <string name="live_saturated">SATURATED</string>
+    <!-- %1$d is the highest raw count in the spectrum. -->
+    <string name="live_peak">peak %1$d</string>
+    <string name="live_needs_ref">needs reference</string>
+    <!-- Nonlinearity correction applied; short chip. -->
+    <string name="live_nl_corrected">NL corrected</string>
+    <!-- Short: the stored dark spectrum. -->
+    <string name="live_dark">Dark</string>
+    <!-- Short: the stored reference spectrum. -->
+    <string name="live_ref">Ref</string>
+    <!-- %1$s is "Dark" or "Ref". -->
+    <string name="stored_none">%1$s: none</string>
+    <!-- %1$s is "Dark" or "Ref"; %2$s the integration time it was taken at. -->
+    <string name="stored_stale">%1$s: stale (%2$s ms)</string>
+    <!-- %1$s is "Dark" or "Ref". -->
+    <string name="stored_ok">%1$s: ✓</string>
+    <string name="action_stop">Stop</string>
+    <!-- Start continuous acquisition. -->
+    <string name="action_run">Run</string>
+    <!-- Take a single spectrum. -->
+    <string name="action_single">Single</string>
+    <string name="live_sec_integration">Integration and averaging</string>
+    <!-- Integration (exposure) time of the detector. -->
+    <string name="field_integration">Integration</string>
+    <!-- Number of scans averaged. -->
+    <string name="field_average">Average</string>
+    <!-- Boxcar smoothing width in pixels. -->
+    <string name="field_boxcar">Boxcar</string>
+    <string name="live_sec_dark_ref">Dark and reference</string>
+    <string name="live_dark_ref_help" formatted="false">Dark: block the light path (or use the built-in shutter), then store. Reference: point at the white/blank standard. Absorbance and %T/%R need both, taken at the current integration time.</string>
+    <string name="live_store_dark">Store dark</string>
+    <string name="live_dark_shutter">Dark (shutter)</string>
+    <string name="live_store_ref">Store reference</string>
+    <string name="live_clear_both">Clear both</string>
+    <string name="fire_not_acquiring">Not acquiring</string>
+    <!-- Large alarm banner; upper case where the language allows. -->
+    <string name="fire_detected">FIRE DETECTED</string>
+    <!-- Potassium signal seen, waiting for confirmation over several spectra. -->
+    <string name="fire_confirming">K+ signal, confirming…</string>
+    <string name="fire_none">No fire</string>
+    <!-- %1$s is a percentage number (0-100); %% prints a percent sign. -->
+    <string name="fire_confidence">Confidence %1$s %%</string>
+    <!-- K I = neutral potassium, keep as is. %1$s and %2$s are percentages; %% prints %. -->
+    <string name="fire_emission_continuum">K I emission %1$s %% above continuum (threshold %2$s %%)</string>
+    <!-- K I = neutral potassium, keep as is. %1$s and %2$s are percentages; %% prints %. -->
+    <string name="fire_emission_mean">K I emission %1$s %% above mean (threshold %2$s %%)</string>
+    <string name="fire_stop_monitoring">Stop monitoring</string>
+    <string name="fire_start_monitoring">Start monitoring</string>
+    <string name="fire_alarm_on">Alarm on</string>
+    <string name="fire_alarm_off">Alarm off</string>
+    <!-- "Pi" is the Raspberry Pi system this app replaces; "Recommended" is a button name. -->
+    <string name="fire_pi_warning">Pi rule active: the K I lines are compared with the mean of the whole spectrum, so a bright continuum near 766 nm can be reported as fire with no emission lines present. Use Recommended for detection.</string>
+    <!-- %1$s and %2$s are wavelengths in nm. -->
+    <string name="fire_range_warning">This spectrometer\'s range (%1$s–%2$s nm) does not cover the K I lines at 766–770 nm; fire detection is not meaningful.</string>
+    <string name="fire_zoom_k">Zoom to K lines</string>
+    <string name="fire_show_full">Show full range</string>
+    <string name="fire_sec_doublet">Potassium doublet</string>
+    <string name="fire_compared_with">Compared with</string>
+    <string name="fire_cmp_local">local continuum (green flanks)</string>
+    <!-- %1$s is a count value. -->
+    <string name="fire_cmp_mean">spectrum mean %1$s counts (Pi)</string>
+    <!-- Emission line number 1 or 2 of the potassium doublet. -->
+    <string name="fire_line">Line %1$d</string>
+    <string name="fire_windows">Windows</string>
+    <!-- %1$s and %2$s are pixel ranges such as 278–282. -->
+    <string name="fire_windows_pixels">pixels %1$s, %2$s (Pi)</string>
+    <string name="fire_confidence_label">Confidence</string>
+    <!-- %1$s percentage; S/N = signal-to-noise of each line; ratio of the two line heights. -->
+    <string name="fire_confidence_detail">%1$s %% \u0020(S/N %2$s / %3$s, ratio %4$s)</string>
+    <string name="fire_peak_finder">Peak finder</string>
+    <!-- Peak-finding method identical to the Raspberry Pi version. -->
+    <string name="alg_pi_identical">Pi-identical</string>
+    <string name="alg_local_max">Local maximum</string>
+    <string name="fire_other_mean" formatted="false">Other maxima ≥ 1 % above spectrum mean</string>
+    <string name="fire_other_local" formatted="false">Other maxima ≥ 1 % above local continuum</string>
+    <!-- %1$s count value; %2$s percentage. -->
+    <string name="fire_other_value">%1$s counts \u0020(+%2$s %%)</string>
+    <string name="fire_show_top5">Show top 5</string>
+    <!-- %1$d is the number of maxima. -->
+    <string name="fire_show_all">Show all %1$d</string>
+    <string name="fire_sec_presets">Presets</string>
+    <string name="fire_preset_rec_help" formatted="false">Recommended: 200 ms, K I lines by wavelength, each line against the local continuum, 10 % threshold.</string>
+    <string name="fire_preset_pi_help">Pi preset: exactly as the Pi ran it: one raw 200 ms scan (its daemon ignored the requested boxcar 3), pixel windows 278–282 / 287–291, lines against the whole-spectrum mean. For comparing with old data.</string>
+    <!-- Button: apply the recommended detector settings. -->
+    <string name="fire_preset_rec">Recommended</string>
+    <!-- Button: apply the original Raspberry Pi detector settings. -->
+    <string name="fire_preset_pi">Pi preset</string>
+    <string name="fire_sim_flame">Simulate flame (K I doublet)</string>
+    <string name="fire_sim_flame_detail">Simulator only: adds 766.5 / 769.9 nm emission</string>
+    <!-- %1$s wavelength, %2$s counts, %3$s signed percentage. -->
+    <string name="fire_window_value">%1$s nm \u0020%2$s counts \u0020%3$s %%</string>
+    <string name="log_tab_recording">Recording</string>
+    <string name="log_tab_sessions">Sessions</string>
+    <string name="log_sec_status">Status</string>
+    <string name="log_paused">Paused</string>
+    <string name="log_logging">Logging</string>
+    <string name="log_spectra_saved">Spectra saved</string>
+    <!-- Spectra saved out of the maximum. -->
+    <string name="log_n_of_max">%1$d of %2$d</string>
+    <string name="log_fire_detections">Fire detections</string>
+    <string name="log_folder">Folder</string>
+    <string name="log_not_logging">Not logging. Settings below apply to the next session.</string>
+    <string name="log_gps">GPS</string>
+    <string name="gps_off">tagging off</string>
+    <string name="gps_no_permission">no permission</string>
+    <string name="gps_waiting">waiting for fix…</string>
+    <string name="log_allow_location">Allow location</string>
+    <string name="log_start">Start logging</string>
+    <string name="log_resume">Resume</string>
+    <string name="log_pause">Pause</string>
+    <string name="log_sec_acq">Acquisition control</string>
+    <!-- Time between saved spectra, in seconds. -->
+    <string name="log_interval">Interval</string>
+    <string name="log_max_spectra">Max spectra</string>
+    <string name="log_interval_help">Interval 0 saves every spectrum; max 0 means no limit.</string>
+    <string name="log_save_mode">Save mode</string>
+    <string name="save_single">One CSV per session (one row per spectrum)</string>
+    <!-- "Pi" is the Raspberry Pi system this app replaces. -->
+    <string name="save_multi">One file per spectrum (Pi format)</string>
+    <string name="log_file_prefix">File prefix (per-spectrum mode)</string>
+    <string name="log_tag_gps">Tag with GPS position</string>
+    <string name="log_sec_written">What is written</string>
+    <!-- Keep the file names (spectra.csv, fire.csv, detections.kml, session.txt) unchanged. -->
+    <string name="log_written_help">Each session gets its own folder with spectra.csv (or one text file per spectrum), fire.csv with the K-line analysis of every saved spectrum, detections.kml (track and confirmed detections, opens in Google Earth) and session.txt with the device calibration and settings. Logged counts are the processed counts shown on the Live screen (dark, nonlinearity and boxcar as flagged per row).</string>
+    <string name="res_journal">Fire detection journal</string>
+    <plurals name="res_journal_count">
+        <item quantity="one">%1$d detection with GPS position, recorded with or without a log (shown on the Map tab)</item>
+        <item quantity="other">%1$d detections with GPS position, recorded with or without a log (shown on the Map tab)</item>
+    </plurals>
+    <string name="res_share_csv">Share CSV</string>
+    <string name="action_clear">Clear</string>
+    <string name="res_no_sessions">No logged sessions yet. Start one from Recording.</string>
+    <!-- Marks the session that is being written right now. -->
+    <string name="res_recording">(recording)</string>
+    <!-- %2$s is a size such as 1.2 MB. -->
+    <plurals name="res_files">
+        <item quantity="one">%1$d file, %2$s</item>
+        <item quantity="other">%1$d files, %2$s</item>
+    </plurals>
+    <plurals name="res_more_files">
+        <item quantity="one">… and %1$d more file (all included when sharing)</item>
+        <item quantity="other">… and %1$d more files (all included when sharing)</item>
+    </plurals>
+    <string name="res_share_all">Share all</string>
+    <string name="action_delete">Delete</string>
+    <string name="res_clear_title">Clear detection journal?</string>
+    <plurals name="res_clear_text">
+        <item quantity="one">The %1$d recorded detection is removed from the phone and the map. Logged sessions are kept.</item>
+        <item quantity="other">All %1$d recorded detections are removed from the phone and the map. Logged sessions are kept.</item>
+    </plurals>
+    <string name="res_delete_title">Delete session?</string>
+    <!-- %1$s is a folder name. -->
+    <string name="res_delete_text">%1$s and all its files will be removed from the phone.</string>
+    <string name="res_share_session">Share session</string>
+    <string name="set_use_sim">Use simulator</string>
+    <string name="set_use_sim_detail">Simulated near-infrared spectrometer for trying the app without hardware</string>
+    <string name="set_sim_sample">Simulated sample in beam</string>
+    <string name="set_sim_sample_detail" formatted="false">Adds water / C-H absorption bands, for trying absorbance and %T</string>
+    <string name="set_connected">Connected</string>
+    <string name="set_no_usb">No spectrometer on USB</string>
+    <!-- %1$s is a technical error message (English). -->
+    <string name="set_error">Error: %1$s</string>
+    <string name="set_model_serial">Model / serial</string>
+    <string name="set_pixels">Pixels</string>
+    <!-- %1$d pixel count; %2$d current binning factor; %3$d maximum. -->
+    <string name="set_pixels_value">%1$d (binning %2$d, max %3$d)</string>
+    <string name="set_no_wavecal">no valid wave-cal: pixel index</string>
+    <!-- Wavelength calibration coefficients c0 to c3. -->
+    <string name="set_wavecal">Wave-cal c0..c3</string>
+    <!-- Nonlinearity correction coefficients k. -->
+    <string name="set_nl_k">Nonlinearity k</string>
+    <string name="set_nl_none">none programmed</string>
+    <!-- Detector pixels of the two potassium lines. -->
+    <string name="set_k_pixels">pixels %1$d / %2$d</string>
+    <string name="set_reconnect">Reconnect</string>
+    <string name="set_sec_acq">Acquisition</string>
+    <string name="set_binning">Pixel binning</string>
+    <string name="set_binning_off">Off (1024 px)</string>
+    <string name="set_nl">Nonlinearity correction</string>
+    <string name="set_nl_detail">Uses the unit\'s stored coefficients; applied once a dark is stored</string>
+    <string name="set_screen_on">Keep screen on while acquiring</string>
+    <string name="set_windows_by">Windows by</string>
+    <string name="set_win_wavelength">Wavelength (K I lines)</string>
+    <string name="set_win_pixel">Pixel (Pi windows)</string>
+    <!-- Half-width of the wavelength window; short field label. -->
+    <string name="set_half_width">± width</string>
+    <string name="set_gradient_help">Gradient indices as on the Pi; the candidate peak is the next pixel.</string>
+    <!-- Start pixel of window 1 or 2; short field label. -->
+    <string name="set_w_from" tools:ignore="PluralsCandidate">W%1$d from</string>
+    <!-- End pixel of window 1 or 2; short field label. -->
+    <string name="set_w_to">W%1$d to</string>
+    <string name="set_threshold">Threshold</string>
+    <!-- Number of consecutive spectra needed to confirm a fire. -->
+    <string name="set_confirm_frames">Confirm frames</string>
+    <string name="set_alg_pi">Pi-identical (for comparison)</string>
+    <string name="set_alg_local">Local maximum (recommended)</string>
+    <string name="set_compare_with">Compare lines with</string>
+    <string name="set_base_local">Local continuum (recommended)</string>
+    <string name="set_base_mean">Whole-spectrum mean (Pi)</string>
+    <string name="set_dark_corrected">Use dark-corrected counts</string>
+    <string name="set_dark_corrected_detail" formatted="false">Off matches the Pi (raw counts). The 10 % threshold was tuned on raw counts.</string>
+    <string name="set_alarm_sound">Alarm sound</string>
+    <string name="set_alarm_vibration">Alarm vibration</string>
+    <!-- Map base layer: street map. -->
+    <string name="map_street">Street</string>
+    <!-- Map base layer: satellite imagery. -->
+    <string name="map_satellite">Satellite</string>
+    <!-- Map base layer: topographic map. -->
+    <string name="map_terrain">Terrain</string>
+    <plurals name="map_detections">
+        <item quantity="one">%1$d fire detection</item>
+        <item quantity="other">%1$d fire detections</item>
+    </plurals>
+    <plurals name="map_tracks">
+        <item quantity="one">%1$d survey track</item>
+        <item quantity="other">%1$d survey tracks</item>
+    </plurals>
+    <!-- Map legend: red marker. Short, lower case. -->
+    <string name="map_legend_detection">detection</string>
+    <!-- Map legend: blue survey track line. Short. -->
+    <string name="map_legend_track">track</string>
+    <!-- Map legend: your own position. Short. -->
+    <string name="map_legend_you">you</string>
+    <string name="map_show_all">Show all detections</string>
+    <string name="map_my_position">Go to my position</string>
+    <string name="map_empty">No detections yet. Confirmed fire detections with a GPS fix appear here as red markers, and logged sessions draw their survey track in blue.</string>
+    <string name="map_fire_detection">Fire detection</string>
+    <string name="action_close">Close</string>
+    <string name="map_show_full_spectrum">Show full spectrum</string>
+    <string name="map_no_spectrum">No spectrum was saved with this detection.</string>
+    <string name="map_detector">Detector</string>
+    <string name="map_cmp_mean">spectrum mean (Pi rule)</string>
+    <!-- Baseline counts under line 1 and line 2. -->
+    <string name="map_cmp_local">local continuum %1$s / %2$s counts</string>
+    <string name="map_snr">Signal-to-noise</string>
+    <!-- Height ratio of the 766 nm and 770 nm potassium lines. -->
+    <string name="map_ratio">Line ratio 766/770</string>
+    <string name="map_ratio_value">%1$s (expected 1–2.5)</string>
+    <!-- %1$s threshold percentage; %2$d number of spectra; %% prints %. -->
+    <plurals name="map_threshold_value">
+        <item quantity="one">%1$s %%, confirmed over %2$d scan</item>
+        <item quantity="other">%1$s %%, confirmed over %2$d scans</item>
+    </plurals>
+    <string name="map_measurement">Measurement</string>
+    <!-- %1$s integration time in ms; %2$d scans averaged. -->
+    <plurals name="map_integration_value">
+        <item quantity="one">%1$s ms × %2$d scan</item>
+        <item quantity="other">%1$s ms × %2$d scans</item>
+    </plurals>
+    <string name="map_position">Position</string>
+    <string name="map_altitude">Altitude</string>
+    <!-- Compass heading in degrees. -->
+    <string name="map_heading">heading %1$s°</string>
+    <string name="map_movement">Movement</string>
+    <string name="map_session">Session</string>
+    <string name="map_not_logging">not logging</string>
+    <!-- Small caption under a percentage badge. Short, lower case. -->
+    <string name="map_confidence_badge">confidence</string>
+    <string name="support_supported">Supported</string>
+    <string name="support_experimental">Experimental</string>
+    <string name="support_experimental_long">Experimental (driver ported, not yet tested on hardware)</string>
+    <string name="support_external_power">Needs external power</string>
+    <string name="support_external_power_long">Experimental; needs its own power supply or a powered USB hub</string>
+    <string name="support_planned">Planned</string>
+    <string name="support_planned_long">Driver planned</string>
+    <!-- %1$s and %2$s are the two phrases below, e.g. "12 spectra" and "1 detection". -->
+    <string name="msg_log_saved">Log saved: %1$s, %2$s</string>
+    <plurals name="count_spectra">
+        <item quantity="one">%1$d spectrum</item>
+        <item quantity="other">%1$d spectra</item>
+    </plurals>
+    <plurals name="count_detections">
+        <item quantity="one">%1$d detection</item>
+        <item quantity="other">%1$d detections</item>
+    </plurals>
+    <!-- %1$s is a technical error message (English). -->
+    <string name="msg_spectrometer_error">Spectrometer error: %1$s</string>
+    <string name="msg_no_shutter">Shutter not available on this unit: block the light path for darks</string>
+    <!-- %1$d is the number of scans averaged. -->
+    <plurals name="msg_dark_stored">
+        <item quantity="one">Dark stored (%1$d scan)</item>
+        <item quantity="other">Dark stored (%1$d scans)</item>
+    </plurals>
+    <!-- %1$d is the number of scans averaged. -->
+    <plurals name="msg_dark_stored_shutter">
+        <item quantity="one">Dark stored (%1$d scan, shutter closed)</item>
+        <item quantity="other">Dark stored (%1$d scans, shutter closed)</item>
+    </plurals>
+    <string name="msg_dark_first">Take a dark before the reference</string>
+    <string name="msg_ref_saturated">Reference stored, but it is SATURATED: shorten integration</string>
+    <string name="msg_ref_stored">Reference stored</string>
+    <!-- %1$s is a technical error message (English). -->
+    <string name="msg_record_failed">Could not record detection: %1$s</string>
+    <!-- %1$s is a technical error message (English). -->
+    <string name="msg_log_failed">Could not write log: %1$s</string>
+    <!-- Interface of the built-in simulator. -->
+    <string name="iface_simulated">simulated, no USB</string>
 </resources>

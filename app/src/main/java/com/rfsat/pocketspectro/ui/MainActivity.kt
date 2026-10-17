@@ -1,5 +1,10 @@
 package com.rfsat.pocketspectro.ui
 
+import com.rfsat.pocketspectro.labelRes
+import com.rfsat.pocketspectro.R
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import android.Manifest
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -84,11 +89,11 @@ class MainActivity : ComponentActivity() {
                     if (device != null && intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         engine.connectUsb(usbManager, device)
                     } else {
-                        engine.disconnect("USB permission refused")
+                        engine.disconnect(getString(R.string.conn_usb_refused))
                     }
                 }
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
-                    if (device != null && isSts(device) && !engine.store.value.useSimulator) engine.disconnect("Spectrometer unplugged")
+                    if (device != null && isSts(device) && !engine.store.value.useSimulator) engine.disconnect(getString(R.string.conn_unplugged))
                 }
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
                     if (device != null && isSts(device)) connectSource()
@@ -191,8 +196,8 @@ class MainActivity : ComponentActivity() {
     private fun connectDevice(device: UsbDevice) {
         val model = DeviceCatalog.find(device.vendorId, device.productId)
         when {
-            model == null -> engine.disconnect("Unknown Ocean device %04X:%04X".format(device.vendorId, device.productId))
-            !model.usable -> engine.disconnect("${model.name} recognised: ${model.support.label.lowercase()}")
+            model == null -> engine.disconnect(getString(R.string.conn_unknown_device, "%04X:%04X".format(device.vendorId, device.productId)))
+            !model.usable -> engine.disconnect(getString(R.string.conn_recognised_unusable, model.name, getString(model.support.labelRes())))
             usbManager.hasPermission(device) -> engine.connectUsb(usbManager, device)
             else -> requestUsb(device)
         }
@@ -203,13 +208,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-enum class Tab(val label: String, val icon: ImageVector) {
-    HOME("Home", Icons.Filled.Home),
-    LIVE("Live", Icons.Filled.ShowChart),
-    FIRE("Fire", Icons.Filled.LocalFireDepartment),
-    MAP("Map", Icons.Filled.Map),
-    LOG("Log", Icons.Filled.ListAlt),
-    SETUP("Setup", Icons.Filled.Settings),
+enum class Tab(@StringRes val label: Int, val icon: ImageVector) {
+    HOME(R.string.tab_home, Icons.Filled.Home),
+    LIVE(R.string.tab_live, Icons.Filled.ShowChart),
+    FIRE(R.string.tab_fire, Icons.Filled.LocalFireDepartment),
+    MAP(R.string.tab_map, Icons.Filled.Map),
+    LOG(R.string.tab_log, Icons.Filled.ListAlt),
+    SETUP(R.string.tab_setup, Icons.Filled.Settings),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -242,13 +247,14 @@ internal fun AppRoot(
             TopAppBar(
                 title = {
                     Column {
-                        Text("PocketSpectro")
+                        Text(stringResource(R.string.app_name))
                         Text(
                             when (val c = conn) {
-                                is Connection.Ready -> "${c.info.model} · ${c.info.serial}" + (if (fireAlarm) "  · FIRE" else "")
-                                Connection.Connecting -> "Connecting…"
-                                Connection.AwaitingPermission -> "Allow USB access to the spectrometer"
-                                Connection.NoDevice -> "Plug in a spectrometer (USB-OTG)"
+                                is Connection.Ready -> "${c.info.model} · ${c.info.serial}" +
+                                    (if (fireAlarm) "  · " + stringResource(R.string.top_fire_badge) else "")
+                                Connection.Connecting -> stringResource(R.string.conn_connecting)
+                                Connection.AwaitingPermission -> stringResource(R.string.top_allow_usb)
+                                Connection.NoDevice -> stringResource(R.string.top_plug_in)
                                 is Connection.Failed -> c.message
                             },
                             style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -263,12 +269,12 @@ internal fun AppRoot(
         bottomBar = {
             NavigationBar {
                 tabs.forEach { t ->
-                    NavigationBarItem(selected = tab == t, onClick = { tabName = t.name }, icon = { Icon(t.icon, t.label) },
-                        label = { Text(t.label, fontSize = 10.sp, maxLines = 1, softWrap = false) })
+                    NavigationBarItem(selected = tab == t, onClick = { tabName = t.name }, icon = { Icon(t.icon, stringResource(t.label)) },
+                        label = { Text(stringResource(t.label), fontSize = 10.sp, maxLines = 1, softWrap = false) })
                 }
                 NavigationBarItem(selected = false, onClick = { confirmExit = true },
-                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, "Exit") },
-                    label = { Text("Exit", fontSize = 10.sp, maxLines = 1) })
+                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, stringResource(R.string.tab_exit)) },
+                    label = { Text(stringResource(R.string.tab_exit), fontSize = 10.sp, maxLines = 1) })
             }
         },
         snackbarHost = { SnackbarHost(snack) },
@@ -277,13 +283,13 @@ internal fun AppRoot(
             val log by engine.log.collectAsState()
             AlertDialog(
                 onDismissRequest = { confirmExit = false },
-                title = { Text("Exit PocketSpectro?") },
+                title = { Text(stringResource(R.string.exit_title)) },
                 text = {
-                    Text(if (log.active) "Logging is in progress (${log.spectra} spectra). It will be stopped and the files closed; " +
-                        "the spectrometer is released." else "Acquisition stops and the spectrometer is released.")
+                    Text(if (log.active) pluralStringResource(R.plurals.exit_logging, log.spectra, log.spectra)
+                        else stringResource(R.string.exit_idle))
                 },
-                confirmButton = { TextButton(onClick = { confirmExit = false; onExit() }) { Text("Exit") } },
-                dismissButton = { TextButton(onClick = { confirmExit = false }) { Text("Cancel") } },
+                confirmButton = { TextButton(onClick = { confirmExit = false; onExit() }) { Text(stringResource(R.string.tab_exit)) } },
+                dismissButton = { TextButton(onClick = { confirmExit = false }) { Text(stringResource(R.string.action_cancel)) } },
             )
         }
         Box(Modifier.fillMaxSize().padding(pad)) {
@@ -309,19 +315,17 @@ private fun NotConnected(conn: Connection, onReconnect: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(24.dp)) {
         Text(
             when (conn) {
-                Connection.Connecting -> "Connecting to the spectrometer…"
-                Connection.AwaitingPermission -> "Waiting for you to allow USB access."
-                is Connection.Failed -> "Connection problem: ${conn.message}"
-                else -> "No spectrometer connected."
+                Connection.Connecting -> stringResource(R.string.nc_connecting)
+                Connection.AwaitingPermission -> stringResource(R.string.nc_awaiting)
+                is Connection.Failed -> stringResource(R.string.nc_failed, conn.message)
+                else -> stringResource(R.string.nc_none)
             },
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            "Connect a supported spectrometer with a data-capable OTG cable (micro-USB to USB-C for micro-USB units). " +
-                "The app opens automatically when it is " +
-                "plugged in. To try the app without hardware, turn on the simulator in Setup.",
+            stringResource(R.string.nc_help),
             style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp),
         )
-        androidx.compose.material3.OutlinedButton(onClick = onReconnect, modifier = Modifier.padding(top = 16.dp)) { Text("Retry") }
+        androidx.compose.material3.OutlinedButton(onClick = onReconnect, modifier = Modifier.padding(top = 16.dp)) { Text(stringResource(R.string.action_retry)) }
     }
 }

@@ -1,5 +1,7 @@
 package com.rfsat.pocketspectro.core
 
+import com.rfsat.pocketspectro.R
+import com.rfsat.pocketspectro.labelRes
 import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
@@ -142,8 +144,8 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
             _connection.value = Connection.Connecting
             try {
                 val model = DeviceCatalog.find(usb.vendorId, usb.productId)
-                    ?: throw IOException("Unknown Ocean device 0x%04X:0x%04X".format(usb.vendorId, usb.productId))
-                if (!model.usable) throw IOException("${model.name} recognised; ${model.support.label.lowercase()} (${model.protocol.label})")
+                    ?: throw IOException(context.getString(R.string.conn_unknown_device, "%04X:%04X".format(usb.vendorId, usb.productId)))
+                if (!model.usable) throw IOException(context.getString(R.string.conn_recognised_unusable, model.name, context.getString(model.support.labelRes())))
                 val io = AndroidUsbTransport.open(manager, usb)
                 val dev = try { SpectrometerFactory.open(io, model) } catch (e: IOException) { io.close(); throw e }
                 attach(dev)
@@ -240,7 +242,10 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
         logger?.close()
         logger = null
         if (_log.value.active) {
-            _messages.tryEmit("Log saved: ${_log.value.spectra} spectra, ${_log.value.detections} detections")
+            val r = context.resources
+            _messages.tryEmit(context.getString(R.string.msg_log_saved,
+                r.getQuantityString(R.plurals.count_spectra, _log.value.spectra, _log.value.spectra),
+                r.getQuantityString(R.plurals.count_detections, _log.value.detections, _log.value.detections)))
         }
         _log.value = _log.value.copy(active = false, paused = false)
     }
@@ -262,9 +267,9 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
                     else -> delay(40)
                 }
             } catch (e: IOException) {
-                _messages.tryEmit("Spectrometer error: ${e.message}")
+                _messages.tryEmit(context.getString(R.string.msg_spectrometer_error, e.message ?: e.javaClass.simpleName))
                 closeDevice()
-                _connection.value = Connection.Failed(e.message ?: "I/O error")
+                _connection.value = Connection.Failed(e.message ?: context.getString(R.string.conn_io_error))
                 return
             }
         }
@@ -301,12 +306,12 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
             shuttered = try { dev.setShutter(false) } catch (_: IOException) { false }
             _shutterAvailable.value = shuttered
             if (shuttered) dev.acquire() // flush a scan integrated with the shutter open
-            else _messages.tryEmit("Shutter not available on this unit: block the light path for darks")
+            else _messages.tryEmit(context.getString(R.string.msg_no_shutter))
         }
         try {
             val avg = averaged(dev, s.scansToAverage)
             _dark.value = StoredSpectrum(avg.mean(), s.integrationUs, avg.count, System.currentTimeMillis())
-            _messages.tryEmit("Dark stored (${avg.count} scans${if (shuttered) ", shutter closed" else ""})")
+            _messages.tryEmit(context.resources.getQuantityString(if (shuttered) R.plurals.msg_dark_stored_shutter else R.plurals.msg_dark_stored, avg.count, avg.count))
         } finally {
             if (shuttered) { dev.setShutter(true); dev.acquire() }
         }
@@ -315,14 +320,14 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
     private fun doCaptureReference(dev: Spectrometer, s: AppSettings) {
         val dark = _dark.value
         if (dark == null) {
-            _messages.tryEmit("Take a dark before the reference")
+            _messages.tryEmit(context.getString(R.string.msg_dark_first))
             return
         }
         val avg = averaged(dev, s.scansToAverage)
         val nl = dev.info.nonlinearityCoefficients
         val ref = Processing.correctedCounts(avg.mean(), dark.data, nl, s.applyNonlinearity)
         _reference.value = StoredSpectrum(ref, s.integrationUs, avg.count, System.currentTimeMillis())
-        _messages.tryEmit(if (avg.maxRaw >= dev.info.maxCounts) "Reference stored, but it is SATURATED: shorten integration" else "Reference stored")
+        _messages.tryEmit(context.getString(if (avg.maxRaw >= dev.info.maxCounts) R.string.msg_ref_saturated else R.string.msg_ref_stored))
     }
 
     private fun acquireFrame(dev: Spectrometer, s: AppSettings) {
@@ -362,7 +367,7 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
                     _journalVersion.value++
                 }
             } catch (e: IOException) {
-                _messages.tryEmit("Could not record detection: ${e.message}")
+                _messages.tryEmit(context.getString(R.string.msg_record_failed, e.message ?: e.javaClass.simpleName))
             }
         }
         lastFireConfirmed = confirmed
@@ -393,7 +398,7 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
             lg.writeSpectrum(LoggedSpectrum(now, s.integrationUs, scans, s.boxcarWidth, darkCorrected, nlApplied, wl, counts, fix))
             if (fire != null) lg.writeFire(now, fire, confirmed, fix)
         } catch (e: IOException) {
-            _messages.tryEmit("Could not write log: ${e.message}")
+            _messages.tryEmit(context.getString(R.string.msg_log_failed, e.message ?: e.javaClass.simpleName))
             stopLogInternal()
             return
         }

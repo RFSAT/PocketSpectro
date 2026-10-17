@@ -1,5 +1,7 @@
 package com.rfsat.pocketspectro.ui
 
+import com.rfsat.pocketspectro.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,10 +48,10 @@ fun FireScreen(engine: AcquisitionEngine) {
         val r = frame?.fire
         val confirmed = frame?.fireConfirmed == true
         val (bg, title) = when {
-            !running || r == null -> MaterialTheme.colorScheme.surfaceVariant to "Not acquiring"
-            confirmed -> FireRed to "FIRE DETECTED"
-            r.fire -> WarnAmber to "K+ signal, confirming…"
-            else -> SafeGreen to "No fire"
+            !running || r == null -> MaterialTheme.colorScheme.surfaceVariant to stringResource(R.string.fire_not_acquiring)
+            confirmed -> FireRed to stringResource(R.string.fire_detected)
+            r.fire -> WarnAmber to stringResource(R.string.fire_confirming)
+            else -> SafeGreen to stringResource(R.string.fire_none)
         }
         Column(
             Modifier.fillMaxWidth().padding(12.dp).background(bg, RoundedCornerShape(16.dp)).padding(18.dp),
@@ -59,11 +61,12 @@ fun FireScreen(engine: AcquisitionEngine) {
                 color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White,
                 textAlign = TextAlign.Center)
             if (r != null && (confirmed || r.fire)) {
-                Text("Confidence %.0f %%".format(Locale.US, r.confidence.score), fontWeight = FontWeight.SemiBold,
+                Text(stringResource(R.string.fire_confidence, "%.0f".format(Locale.US, r.confidence.score)), fontWeight = FontWeight.SemiBold,
                     color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White)
             }
             if (r != null) {
-                Text("K I emission ${"%.1f".format(Locale.US, r.maxPercent)} % above ${if (r.baselineMode == FireDetector.Baseline.LOCAL_CONTINUUM) "continuum" else "mean"} (threshold ${s.fire.thresholdPercent} %)",
+                Text(stringResource(if (r.baselineMode == FireDetector.Baseline.LOCAL_CONTINUUM) R.string.fire_emission_continuum
+                    else R.string.fire_emission_mean, "%.1f".format(Locale.US, r.maxPercent), s.fire.thresholdPercent.toString()),
                     color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White)
             }
         }
@@ -73,21 +76,20 @@ fun FireScreen(engine: AcquisitionEngine) {
                 val on = !(running && armed)
                 engine.armFire(on)
                 engine.setRunning(on)
-            }) { Text(if (running && armed) "Stop monitoring" else "Start monitoring") }
-            OutlinedButton(onClick = { engine.armFire(!armed) }) { Text(if (armed) "Alarm on" else "Alarm off") }
+            }) { Text(stringResource(if (running && armed) R.string.fire_stop_monitoring else R.string.fire_start_monitoring)) }
+            OutlinedButton(onClick = { engine.armFire(!armed) }) { Text(stringResource(if (armed) R.string.fire_alarm_on else R.string.fire_alarm_off)) }
         }
 
         if (s.fire.baseline == FireDetector.Baseline.GLOBAL_MEAN) {
-            Text("Pi rule active: the K I lines are compared with the mean of the whole spectrum, so a bright " +
-                "continuum near 766 nm can be reported as fire with no emission lines present. Use Recommended for detection.",
+            Text(stringResource(R.string.fire_pi_warning),
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)
                     .background(WarnAmber.copy(alpha = 0.18f), RoundedCornerShape(10.dp)).padding(10.dp),
                 style = MaterialTheme.typography.bodySmall)
         }
         val f = frame
         if (f != null && (f.wavelengths.first() > s.fire.centre1Nm || f.wavelengths.last() < s.fire.centre2Nm)) {
-            Text("This spectrometer's range (%.0f–%.0f nm) does not cover the K I lines at 766–770 nm; fire detection is not meaningful."
-                .format(Locale.US, f.wavelengths.first(), f.wavelengths.last()),
+            Text(stringResource(R.string.fire_range_warning,
+                "%.0f".format(Locale.US, f.wavelengths.first()), "%.0f".format(Locale.US, f.wavelengths.last())),
                 Modifier.padding(12.dp), color = FireRed, style = MaterialTheme.typography.bodyMedium)
         }
         if (f != null && r != null) {
@@ -100,7 +102,7 @@ fun FireScreen(engine: AcquisitionEngine) {
             val hi = (f.wavelengths[maxOf(b2.last, r.rightFlank.last)] + 12.0).coerceAtMost(f.wavelengths.last())
             val y = if (s.fireUseDarkCorrected && f.darkCorrected) f.counts else f.meanRaw
             SpectrumChart(
-                f.wavelengths, y, yUnit = "counts", height = 240.dp,
+                f.wavelengths, y, yUnit = stringResource(R.string.unit_counts), height = 240.dp,
                 xRange = if (showFull) null else lo..hi,
                 bands = listOfNotNull(
                     Band(f.wavelengths[b1.first], f.wavelengths[b1.last], band),
@@ -113,42 +115,45 @@ fun FireScreen(engine: AcquisitionEngine) {
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
             Row(Modifier.padding(horizontal = 12.dp)) {
-                TextButton(onClick = { showFull = !showFull }) { Text(if (showFull) "Zoom to K lines" else "Show full range") }
+                TextButton(onClick = { showFull = !showFull }) { Text(stringResource(if (showFull) R.string.fire_zoom_k else R.string.fire_show_full)) }
             }
-            Section("Potassium doublet") {
-                KeyValue("Compared with", if (local) "local continuum (green flanks)" else "spectrum mean %.0f counts (Pi)".format(Locale.US, r.floor))
-                WindowRow("Line 1", r.window1, s.fire.thresholdPercent)
-                WindowRow("Line 2", r.window2, s.fire.thresholdPercent)
-                KeyValue("Windows", if (s.fire.windowMode == FireDetector.WindowMode.WAVELENGTH)
+            Section(stringResource(R.string.fire_sec_doublet)) {
+                KeyValue(stringResource(R.string.fire_compared_with), if (local) stringResource(R.string.fire_cmp_local)
+                    else stringResource(R.string.fire_cmp_mean, "%.0f".format(Locale.US, r.floor)))
+                WindowRow(stringResource(R.string.fire_line, 1), r.window1, s.fire.thresholdPercent)
+                WindowRow(stringResource(R.string.fire_line, 2), r.window2, s.fire.thresholdPercent)
+                KeyValue(stringResource(R.string.fire_windows), if (s.fire.windowMode == FireDetector.WindowMode.WAVELENGTH)
                     "%.2f ± %.1f, %.2f ± %.1f nm".format(Locale.US, s.fire.centre1Nm, s.fire.halfWidthNm, s.fire.centre2Nm, s.fire.halfWidthNm)
-                else "pixels ${b1.first}–${b1.last}, ${b2.first}–${b2.last} (Pi)")
+                else stringResource(R.string.fire_windows_pixels, "${b1.first}–${b1.last}", "${b2.first}–${b2.last}"))
                 val c = r.confidence
-                KeyValue("Confidence", "%.0f %%  (S/N %.1f / %.1f, ratio %s)".format(Locale.US, c.score, c.snr1, c.snr2,
+                KeyValue(stringResource(R.string.fire_confidence_label), stringResource(R.string.fire_confidence_detail,
+                    "%.0f".format(Locale.US, c.score), "%.1f".format(Locale.US, c.snr1), "%.1f".format(Locale.US, c.snr2),
                     if (c.ratio.isFinite()) "%.2f".format(Locale.US, c.ratio) else "—"))
-                KeyValue("Peak finder", if (s.fire.algorithm == FireDetector.Algorithm.PI_IDENTICAL) "Pi-identical" else "Local maximum")
+                KeyValue(stringResource(R.string.fire_peak_finder), stringResource(if (s.fire.algorithm == FireDetector.Algorithm.PI_IDENTICAL)
+                    R.string.alg_pi_identical else R.string.alg_local_max))
             }
-            Section(if (s.fire.baseline == FireDetector.Baseline.GLOBAL_MEAN) "Other maxima ≥ 1 % above spectrum mean" else "Other maxima ≥ 1 % above local continuum") {
+            Section(stringResource(if (s.fire.baseline == FireDetector.Baseline.GLOBAL_MEAN) R.string.fire_other_mean else R.string.fire_other_local)) {
                 val list = if (showAll) r.otherMaxima else r.otherMaxima.sortedByDescending { it.percentAboveFloor }.take(5)
-                for (p in list) KeyValue("%.2f nm".format(Locale.US, p.wavelengthNm), "%.0f counts  (+%.1f %%)".format(Locale.US, p.intensity, p.percentAboveFloor))
+                for (p in list) KeyValue("%.2f nm".format(Locale.US, p.wavelengthNm), stringResource(R.string.fire_other_value,
+                    "%.0f".format(Locale.US, p.intensity), "%.1f".format(Locale.US, p.percentAboveFloor)))
                 if (r.otherMaxima.size > 5) TextButton(onClick = { showAll = !showAll }) {
-                    Text(if (showAll) "Show top 5" else "Show all ${r.otherMaxima.size}")
+                    Text(if (showAll) stringResource(R.string.fire_show_top5) else stringResource(R.string.fire_show_all, r.otherMaxima.size))
                 }
             }
         }
 
-        Section("Presets") {
-            Text("Recommended: 200 ms, K I lines by wavelength, each line against the local continuum, 10 % threshold.",
+        Section(stringResource(R.string.fire_sec_presets)) {
+            Text(stringResource(R.string.fire_preset_rec_help),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Pi preset: exactly as the Pi ran it: one raw 200 ms scan (its daemon ignored the requested boxcar 3), " +
-                "pixel windows 278–282 / 287–291, lines against the whole-spectrum mean. For comparing with old data.",
+            Text(stringResource(R.string.fire_preset_pi_help),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { engine.applyRecommendedFirePreset() }) { Text("Recommended") }
-                OutlinedButton(onClick = { engine.applyPiFirePreset() }) { Text("Pi preset") }
+                OutlinedButton(onClick = { engine.applyRecommendedFirePreset() }) { Text(stringResource(R.string.fire_preset_rec)) }
+                OutlinedButton(onClick = { engine.applyPiFirePreset() }) { Text(stringResource(R.string.fire_preset_pi)) }
             }
             if (sim != null) {
-                SwitchRow("Simulate flame (K I doublet)", simFire, { simFire = it; sim.fireOn = it },
-                    detail = "Simulator only: adds 766.5 / 769.9 nm emission")
+                SwitchRow(stringResource(R.string.fire_sim_flame), simFire, { simFire = it; sim.fireOn = it },
+                    detail = stringResource(R.string.fire_sim_flame_detail))
             }
         }
     }
@@ -157,5 +162,6 @@ fun FireScreen(engine: AcquisitionEngine) {
 @Composable
 private fun WindowRow(name: String, w: FireDetector.WindowResult, thr: Double) {
     val over = w.percentAboveFloor > thr
-    KeyValue(name, "%.2f nm  %.0f counts  %+.1f %%%s".format(Locale.US, w.wavelengthNm, w.intensity, w.percentAboveFloor, if (over) "  ▲" else ""))
+    KeyValue(name, stringResource(R.string.fire_window_value, "%.2f".format(Locale.US, w.wavelengthNm),
+        "%.0f".format(Locale.US, w.intensity), "%+.1f".format(Locale.US, w.percentAboveFloor)) + if (over) "  ▲" else "")
 }

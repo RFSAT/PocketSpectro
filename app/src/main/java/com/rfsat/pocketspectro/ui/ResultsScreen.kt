@@ -1,5 +1,8 @@
 package com.rfsat.pocketspectro.ui
 
+import com.rfsat.pocketspectro.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -54,18 +57,18 @@ fun ResultsScreen(engine: AcquisitionEngine) {
         item(key = "journal") {
             Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Column(Modifier.padding(12.dp)) {
-                    Text("Fire detection journal", fontWeight = FontWeight.SemiBold)
-                    Text("$journalCount detections with GPS position, recorded with or without a log (shown on the Map tab)",
+                    Text(stringResource(R.string.res_journal), fontWeight = FontWeight.SemiBold)
+                    Text(pluralStringResource(R.plurals.res_journal_count, journalCount, journalCount),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (journalCount > 0) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { share(context, listOf(engine.journal.file)) }) { Text("Share CSV") }
-                        TextButton(onClick = { confirmClearJournal = true }) { Text("Clear") }
+                        TextButton(onClick = { share(context, listOf(engine.journal.file)) }) { Text(stringResource(R.string.res_share_csv)) }
+                        TextButton(onClick = { confirmClearJournal = true }) { Text(stringResource(R.string.action_clear)) }
                     }
                 }
             }
         }
         if (sessions.isEmpty()) item(key = "empty") {
-            Text("No logged sessions yet. Start one from Recording.", Modifier.padding(24.dp),
+            Text(stringResource(R.string.res_no_sessions), Modifier.padding(24.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         items(sessions, key = { it.name }) { dir ->
@@ -73,8 +76,8 @@ fun ResultsScreen(engine: AcquisitionEngine) {
             val isLive = log.active && log.folder == dir.name
             Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
                 Column(Modifier.clickable { expanded = if (expanded == dir.name) null else dir.name }.padding(12.dp)) {
-                    Text(dir.name.removePrefix("session_") + if (isLive) "  (recording)" else "", fontWeight = FontWeight.SemiBold)
-                    Text("${files.size} file${if (files.size == 1) "" else "s"}, ${human(files.sumOf { it.length() })}", style = MaterialTheme.typography.bodySmall,
+                    Text(dir.name.removePrefix("session_") + if (isLive) "  " + stringResource(R.string.res_recording) else "", fontWeight = FontWeight.SemiBold)
+                    Text(pluralStringResource(R.plurals.res_files, files.size, files.size, human(files.sumOf { it.length() })), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (expanded == dir.name) {
                         val shown = files.take(40)
@@ -84,11 +87,11 @@ fun ResultsScreen(engine: AcquisitionEngine) {
                                 Text(human(f.length()), style = MaterialTheme.typography.bodySmall)
                             }
                         }
-                        if (files.size > shown.size) Text("… and ${files.size - shown.size} more (all included when sharing)",
+                        if (files.size > shown.size) Text(pluralStringResource(R.plurals.res_more_files, files.size - shown.size, files.size - shown.size),
                             style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { share(context, files) }) { Text("Share all") }
-                            TextButton(onClick = { confirmDelete = dir }, enabled = !isLive) { Text("Delete") }
+                            TextButton(onClick = { share(context, files) }) { Text(stringResource(R.string.res_share_all)) }
+                            TextButton(onClick = { confirmDelete = dir }, enabled = !isLive) { Text(stringResource(R.string.action_delete)) }
                         }
                     }
                 }
@@ -99,20 +102,20 @@ fun ResultsScreen(engine: AcquisitionEngine) {
     if (confirmClearJournal) {
         AlertDialog(
             onDismissRequest = { confirmClearJournal = false },
-            title = { Text("Clear detection journal?") },
-            text = { Text("All $journalCount recorded detections are removed from the phone and the map. Logged sessions are kept.") },
-            confirmButton = { TextButton(onClick = { engine.clearJournal(); confirmClearJournal = false; refresh++ }) { Text("Clear") } },
-            dismissButton = { TextButton(onClick = { confirmClearJournal = false }) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.res_clear_title)) },
+            text = { Text(pluralStringResource(R.plurals.res_clear_text, journalCount, journalCount)) },
+            confirmButton = { TextButton(onClick = { engine.clearJournal(); confirmClearJournal = false; refresh++ }) { Text(stringResource(R.string.action_clear)) } },
+            dismissButton = { TextButton(onClick = { confirmClearJournal = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 
     confirmDelete?.let { dir ->
         AlertDialog(
             onDismissRequest = { confirmDelete = null },
-            title = { Text("Delete session?") },
-            text = { Text("${dir.name} and all its files will be removed from the phone.") },
-            confirmButton = { TextButton(onClick = { dir.deleteRecursively(); confirmDelete = null; refresh++ }) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.res_delete_title)) },
+            text = { Text(stringResource(R.string.res_delete_text, dir.name)) },
+            confirmButton = { TextButton(onClick = { dir.deleteRecursively(); confirmDelete = null; refresh++ }) { Text(stringResource(R.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
@@ -138,7 +141,7 @@ private fun share(context: Context, files: List<File>) {
         putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    try { context.startActivity(Intent.createChooser(i, "Share session")) } catch (_: Exception) {}
+    try { context.startActivity(Intent.createChooser(i, context.getString(R.string.res_share_session))) } catch (_: Exception) {}
 }
 
 private fun human(bytes: Long): String = when {
