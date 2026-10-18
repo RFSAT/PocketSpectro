@@ -24,7 +24,11 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.SymbolLayer
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
@@ -63,9 +67,13 @@ private const val TRACK_SRC = "ps-track"; private const val TRACK_LYR = "ps-trac
 private const val EVENT_SRC = "ps-events"; private const val EVENT_LYR = "ps-events-l"
 private const val SEL_SRC = "ps-sel"; private const val SEL_LYR = "ps-sel-l"
 private const val OWN_SRC = "ps-own"; private const val OWN_LYR = "ps-own-l"
+private const val FLAME = "ps-flame"; private const val FLAME_SIM = "ps-flame-sim"
+
+/** Detections recorded from the built-in simulator carry its model name. */
+fun FireEvent.isSimulated() = model.endsWith("(simulated)")
 
 /**
- * MapLibre map of fire detections (red), survey tracks (blue) and the phone's position.
+ * MapLibre map of fire detections (flame icons; grey for simulated ones), survey tracks (blue) and the phone's position.
  * As in DBM, the user's pan and zoom are never overridden: the camera moves only on first
  * load and when [fitKey] or [recenterKey] changes.
  */
@@ -132,7 +140,7 @@ fun EventMap(
                 }
                 m.setStyle(Style.Builder().fromJson(MapStyles.styleFor(layer))) { style ->
                     styleHolder.value = style; loadedLayer.value = layer
-                    ensureLayers(style)
+                    ensureLayers(style, context)
                     updateData(style, tracks, events, selected, own)
                     if (!didInitialCamera.value) {
                         fitCamera(m, tracks, events, own, animate = false)
@@ -144,7 +152,7 @@ fun EventMap(
             if (loadedLayer.value != layer) {
                 map.setStyle(Style.Builder().fromJson(MapStyles.styleFor(layer))) { style ->
                     styleHolder.value = style; loadedLayer.value = layer
-                    ensureLayers(style)
+                    ensureLayers(style, context)
                     updateData(style, tracks, events, selected, own)
                 }
             } else {
@@ -173,7 +181,10 @@ fun EventMap(
     }
 }
 
-private fun ensureLayers(style: Style) {
+private fun ensureLayers(style: Style, context: android.content.Context) {
+    // Flame markers (vector drawables rendered at the screen density).
+    if (style.getImage(FLAME) == null) style.addImage(FLAME, ContextCompat.getDrawable(context, R.drawable.ic_map_flame)!!.toBitmap())
+    if (style.getImage(FLAME_SIM) == null) style.addImage(FLAME_SIM, ContextCompat.getDrawable(context, R.drawable.ic_map_flame_sim)!!.toBitmap())
     if (style.getSource(TRACK_SRC) == null) style.addSource(GeoJsonSource(TRACK_SRC))
     if (style.getSource(EVENT_SRC) == null) style.addSource(GeoJsonSource(EVENT_SRC))
     if (style.getSource(SEL_SRC) == null) style.addSource(GeoJsonSource(SEL_SRC))
@@ -182,11 +193,13 @@ private fun ensureLayers(style: Style) {
         PropertyFactory.lineColor("#1E88E5"), PropertyFactory.lineWidth(3.5f), PropertyFactory.lineOpacity(0.85f),
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND), PropertyFactory.lineCap(Property.LINE_CAP_ROUND)))
     if (style.getLayer(SEL_LYR) == null) style.addLayer(CircleLayer(SEL_LYR, SEL_SRC).withProperties(
-        PropertyFactory.circleRadius(17f), PropertyFactory.circleColor("#00000000"),
+        PropertyFactory.circleRadius(21f), PropertyFactory.circleColor("#00000000"),
         PropertyFactory.circleStrokeColor("#FFC107"), PropertyFactory.circleStrokeWidth(4f)))
-    if (style.getLayer(EVENT_LYR) == null) style.addLayer(CircleLayer(EVENT_LYR, EVENT_SRC).withProperties(
-        PropertyFactory.circleRadius(9f), PropertyFactory.circleColor("#E53935"),
-        PropertyFactory.circleStrokeColor("#FFFFFF"), PropertyFactory.circleStrokeWidth(2.5f)))
+    if (style.getLayer(EVENT_LYR) == null) style.addLayer(SymbolLayer(EVENT_LYR, EVENT_SRC).withProperties(
+        PropertyFactory.iconImage(Expression.switchCase(Expression.toBool(Expression.get("sim")),
+            Expression.literal(FLAME_SIM), Expression.literal(FLAME))),
+        PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
+        PropertyFactory.iconAllowOverlap(true), PropertyFactory.iconIgnorePlacement(true)))
     if (style.getLayer(OWN_LYR) == null) style.addLayer(CircleLayer(OWN_LYR, OWN_SRC).withProperties(
         PropertyFactory.circleRadius(8f), PropertyFactory.circleColor("#1565C0"),
         PropertyFactory.circleStrokeColor("#FFFFFF"), PropertyFactory.circleStrokeWidth(3f)))
@@ -199,7 +212,9 @@ private fun updateData(style: Style, tracks: List<SessionTrack>, events: List<Fi
         }))
     style.getSourceAs<GeoJsonSource>(EVENT_SRC)?.setGeoJson(FeatureCollection.fromFeatures(
         events.mapIndexed { i, e ->
-            Feature.fromGeometry(Point.fromLngLat(e.longitude, e.latitude)).also { it.addNumberProperty("i", i) }
+            Feature.fromGeometry(Point.fromLngLat(e.longitude, e.latitude)).also {
+                it.addNumberProperty("i", i); it.addBooleanProperty("sim", e.isSimulated())
+            }
         }))
     style.getSourceAs<GeoJsonSource>(SEL_SRC)?.setGeoJson(FeatureCollection.fromFeatures(
         listOfNotNull(selected?.let { Feature.fromGeometry(Point.fromLngLat(it.longitude, it.latitude)) })))

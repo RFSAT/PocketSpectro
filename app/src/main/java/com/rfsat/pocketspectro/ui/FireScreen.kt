@@ -71,12 +71,12 @@ fun FireScreen(engine: AcquisitionEngine) {
         }
 
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {
-                val on = !(running && armed)
-                engine.armFire(on)
-                engine.setRunning(on)
-            }) { Text(stringResource(if (running && armed) R.string.fire_stop_monitoring else R.string.fire_start_monitoring)) }
-            OutlinedButton(onClick = { engine.armFire(!armed) }) { Text(stringResource(if (armed) R.string.fire_alarm_on else R.string.fire_alarm_off)) }
+            val monitoring = running && armed
+            ToggleButton(monitoring, stringResource(if (monitoring) R.string.fire_monitoring_on else R.string.fire_monitoring_off), {
+                engine.armFire(!monitoring)
+                engine.setRunning(!monitoring)
+            })
+            ToggleButton(armed, stringResource(if (armed) R.string.fire_alarm_on else R.string.fire_alarm_off), { engine.armFire(!armed) })
         }
 
         if (s.fire.baseline == FireDetector.Baseline.GLOBAL_MEAN) {
@@ -114,7 +114,7 @@ fun FireScreen(engine: AcquisitionEngine) {
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
             Row(Modifier.padding(horizontal = 12.dp)) {
-                TextButton(onClick = { showFull = !showFull }) { Text(stringResource(if (showFull) R.string.fire_zoom_k else R.string.fire_show_full)) }
+                ActionButton(onClick = { showFull = !showFull }, compact = true) { Text(stringResource(if (showFull) R.string.fire_zoom_k else R.string.fire_show_full)) }
             }
             Section(stringResource(R.string.fire_sec_doublet)) {
                 KeyValue(stringResource(R.string.fire_compared_with), if (local) stringResource(R.string.fire_cmp_local)
@@ -135,7 +135,7 @@ fun FireScreen(engine: AcquisitionEngine) {
                 val list = if (showAll) r.otherMaxima else r.otherMaxima.sortedByDescending { it.percentAboveFloor }.take(5)
                 for (p in list) KeyValue("%.2f nm".format(Locale.US, p.wavelengthNm), stringResource(R.string.fire_other_value,
                     "%.0f".format(Locale.US, p.intensity), "%.1f".format(Locale.US, p.percentAboveFloor)))
-                if (r.otherMaxima.size > 5) TextButton(onClick = { showAll = !showAll }) {
+                if (r.otherMaxima.size > 5) ActionButton(onClick = { showAll = !showAll }, compact = true) {
                     Text(if (showAll) stringResource(R.string.fire_show_top5) else stringResource(R.string.fire_show_all, r.otherMaxima.size))
                 }
             }
@@ -147,8 +147,8 @@ fun FireScreen(engine: AcquisitionEngine) {
             Text(stringResource(R.string.fire_preset_pi_help),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { engine.applyRecommendedFirePreset() }) { Text(stringResource(R.string.fire_preset_rec)) }
-                OutlinedButton(onClick = { engine.applyPiFirePreset() }) { Text(stringResource(R.string.fire_preset_pi)) }
+                ActionButton(onClick = { engine.applyRecommendedFirePreset() }) { Text(stringResource(R.string.fire_preset_rec)) }
+                ActionButton(onClick = { engine.applyPiFirePreset() }) { Text(stringResource(R.string.fire_preset_pi)) }
             }
         }
         if (sim != null) SimFireControls(engine)

@@ -92,7 +92,7 @@ fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit, deta
             if (detail != null) Text(detail, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        OnOffSwitch(checked, onChange)
     }
 }
 

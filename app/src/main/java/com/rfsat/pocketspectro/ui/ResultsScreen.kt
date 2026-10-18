@@ -61,8 +61,8 @@ fun ResultsScreen(engine: AcquisitionEngine) {
                     Text(pluralStringResource(R.plurals.res_journal_count, journalCount, journalCount),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (journalCount > 0) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { share(context, listOf(engine.journal.file)) }) { Text(stringResource(R.string.res_share_csv)) }
-                        TextButton(onClick = { confirmClearJournal = true }) { Text(stringResource(R.string.action_clear)) }
+                        ActionButton(onClick = { share(context, listOf(engine.journal.file)) }, compact = true) { Text(stringResource(R.string.res_share_csv)) }
+                        ActionButton(onClick = { confirmClearJournal = true }, compact = true) { Text(stringResource(R.string.action_clear)) }
                     }
                 }
             }
@@ -90,8 +90,8 @@ fun ResultsScreen(engine: AcquisitionEngine) {
                         if (files.size > shown.size) Text(pluralStringResource(R.plurals.res_more_files, files.size - shown.size, files.size - shown.size),
                             style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { share(context, files) }) { Text(stringResource(R.string.res_share_all)) }
-                            TextButton(onClick = { confirmDelete = dir }, enabled = !isLive) { Text(stringResource(R.string.action_delete)) }
+                            ActionButton(onClick = { share(context, files) }, compact = true) { Text(stringResource(R.string.res_share_all)) }
+                            ActionButton(onClick = { confirmDelete = dir }, enabled = !isLive, compact = true) { Text(stringResource(R.string.action_delete)) }
                         }
                     }
                 }
@@ -104,8 +104,8 @@ fun ResultsScreen(engine: AcquisitionEngine) {
             onDismissRequest = { confirmClearJournal = false },
             title = { Text(stringResource(R.string.res_clear_title)) },
             text = { Text(pluralStringResource(R.plurals.res_clear_text, journalCount, journalCount)) },
-            confirmButton = { TextButton(onClick = { engine.clearJournal(); confirmClearJournal = false; refresh++ }) { Text(stringResource(R.string.action_clear)) } },
-            dismissButton = { TextButton(onClick = { confirmClearJournal = false }) { Text(stringResource(R.string.action_cancel)) } },
+            confirmButton = { ActionButton(onClick = { engine.clearJournal(); confirmClearJournal = false; refresh++ }, emphasis = true) { Text(stringResource(R.string.action_clear)) } },
+            dismissButton = { ActionButton(onClick = { confirmClearJournal = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 
@@ -114,8 +114,8 @@ fun ResultsScreen(engine: AcquisitionEngine) {
             onDismissRequest = { confirmDelete = null },
             title = { Text(stringResource(R.string.res_delete_title)) },
             text = { Text(stringResource(R.string.res_delete_text, dir.name)) },
-            confirmButton = { TextButton(onClick = { dir.deleteRecursively(); confirmDelete = null; refresh++ }) { Text(stringResource(R.string.action_delete)) } },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text(stringResource(R.string.action_cancel)) } },
+            confirmButton = { ActionButton(onClick = { dir.deleteRecursively(); confirmDelete = null; refresh++ }, emphasis = true) { Text(stringResource(R.string.action_delete)) } },
+            dismissButton = { ActionButton(onClick = { confirmDelete = null }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }

@@ -288,8 +288,8 @@ internal fun AppRoot(
                     Text(if (log.active) pluralStringResource(R.plurals.exit_logging, log.spectra, log.spectra)
                         else stringResource(R.string.exit_idle))
                 },
-                confirmButton = { TextButton(onClick = { confirmExit = false; onExit() }) { Text(stringResource(R.string.tab_exit)) } },
-                dismissButton = { TextButton(onClick = { confirmExit = false }) { Text(stringResource(R.string.action_cancel)) } },
+                confirmButton = { ActionButton(onClick = { confirmExit = false; onExit() }, emphasis = true) { Text(stringResource(R.string.tab_exit)) } },
+                dismissButton = { ActionButton(onClick = { confirmExit = false }) { Text(stringResource(R.string.action_cancel)) } },
             )
         }
         Box(Modifier.fillMaxSize().padding(pad)) {
@@ -326,6 +326,6 @@ private fun NotConnected(conn: Connection, onReconnect: () -> Unit) {
             stringResource(R.string.nc_help),
             style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp),
         )
-        androidx.compose.material3.OutlinedButton(onClick = onReconnect, modifier = Modifier.padding(top = 16.dp)) { Text(stringResource(R.string.action_retry)) }
+        ActionButton(onClick = onReconnect, modifier = Modifier.padding(top = 16.dp), emphasis = true) { Text(stringResource(R.string.action_retry)) }
     }
 }

@@ -72,7 +72,7 @@ class ScreenshotTest {
     }
 
     /** A short survey track with three journalled detections, east of Athens. */
-    private fun seedMapData() {
+    private fun seedMapData(withSimulated: Boolean = false) {
         val dir = java.io.File(engine.sessionsRoot, "session_20261017_101500").apply { mkdirs() }
         val sb = StringBuilder("time_utc,epoch_ms,latitude,longitude\n")
         for (i in 0..60) {
@@ -108,7 +108,7 @@ class ScreenshotTest {
                 "%.1f".format(java.util.Locale.US, r.window2.baseline), "%.2f".format(java.util.Locale.US, r.window2.percentAboveFloor),
                 "LOCAL_CONTINUUM", "%.1f".format(java.util.Locale.US, c.score), "%.2f".format(java.util.Locale.US, c.snr1),
                 "%.2f".format(java.util.Locale.US, c.snr2), "%.3f".format(java.util.Locale.US, c.ratio),
-                "STS-NIR", "S08245", 200000, 1, "10.0", 2, if (n < 2) "session_20261017_101500" else "", "spectra/$t.csv",
+                if (withSimulated && n == 2) "STS-NIR (simulated)" else "STS-NIR", "S08245", 200000, 1, "10.0", 2, if (n < 2) "session_20261017_101500" else "", "spectra/$t.csv",
             ).joinToString(",")).append("\n")
         }
         j.writeText(rows.toString())
@@ -203,6 +203,15 @@ class ScreenshotTest {
         show(Tab.MAP)
         waitFor(40_000) { com.rfsat.pocketspectro.ui.PreviewTiles.loaded > 0 }
         shot("06e_map_terrain")
+    }
+
+    @Test fun s06g_mapWithSimulated() {
+        prepare()
+        seedMapData(withSimulated = true)
+        com.rfsat.pocketspectro.ui.PreviewTiles.loaded = 0
+        show(Tab.MAP)
+        waitFor(40_000) { com.rfsat.pocketspectro.ui.PreviewTiles.loaded > 0 }
+        shot("06f_map_with_simulated")
     }
 
     @Test fun s06d_sessionsWithJournal() {

@@ -47,11 +47,8 @@ fun LiveScreen(engine: AcquisitionEngine) {
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (m in DisplayMode.entries) {
-                FilterChip(
-                    selected = s.displayMode == m,
-                    onClick = { engine.store.update { it.copy(displayMode = m) } },
-                    label = { Text(stringResource(m.chipRes())) },
-                )
+                ChoiceChip(selected = s.displayMode == m, label = stringResource(m.chipRes()),
+                    onClick = { engine.store.update { it.copy(displayMode = m) } })
             }
         }
 
@@ -83,11 +80,9 @@ fun LiveScreen(engine: AcquisitionEngine) {
 
         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = { engine.setRunning(!running) }) {
-                Icon(if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow, null)
-                Text(" " + stringResource(if (running) R.string.action_stop else R.string.action_run))
-            }
-            OutlinedButton(onClick = { engine.singleShot() }, enabled = !running) { Text(stringResource(R.string.action_single)) }
+            ToggleButton(running, stringResource(if (running) R.string.live_acq_on else R.string.live_acq_off),
+                { engine.setRunning(!running) }, icon = if (running) Icons.Filled.PlayArrow else Icons.Filled.Pause)
+            ActionButton(onClick = { engine.singleShot() }, enabled = !running) { Text(stringResource(R.string.action_single)) }
         }
 
         Section(stringResource(R.string.live_sec_integration)) {
@@ -105,12 +100,12 @@ fun LiveScreen(engine: AcquisitionEngine) {
             Text(stringResource(R.string.live_dark_ref_help),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { engine.captureDark(useShutter = false) }) { Text(stringResource(R.string.live_store_dark)) }
-                OutlinedButton(onClick = { engine.captureDark(useShutter = true) }, enabled = shutter) { Text(stringResource(R.string.live_dark_shutter)) }
+                ActionButton(onClick = { engine.captureDark(useShutter = false) }) { Text(stringResource(R.string.live_store_dark)) }
+                ActionButton(onClick = { engine.captureDark(useShutter = true) }, enabled = shutter) { Text(stringResource(R.string.live_dark_shutter)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { engine.captureReference() }, enabled = dark != null) { Text(stringResource(R.string.live_store_ref)) }
-                TextButton(onClick = { engine.clearDark(); engine.clearReference() }) { Text(stringResource(R.string.live_clear_both)) }
+                ActionButton(onClick = { engine.captureReference() }, enabled = dark != null) { Text(stringResource(R.string.live_store_ref)) }
+                ActionButton(onClick = { engine.clearDark(); engine.clearReference() }, enabled = dark != null || ref != null) { Text(stringResource(R.string.live_clear_both)) }
             }
         }
     }

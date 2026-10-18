@@ -10,7 +10,7 @@ It started as the port of the Raspberry Pi Zero W "Wi-Fi STS-NIR" web server (20
 Apache/PHP served the UI and a C++ daemon talked to the spectrometer. On the phone, the app talks to the
 spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Ltd. Version 1.2.0 (build 10200).
+RFSAT Ltd. Version 1.3.0 (build 10300).
 
 ## Hardware
 
@@ -49,7 +49,7 @@ analysis runs.
 | Home | Connection status and quick actions, app description, RFSAT and hardware details, spectrometer support list |
 | Live | Live spectrum (counts, absorbance, %T/%R), run/stop/single, integration, averaging, boxcar, dark (manual or built-in shutter) and reference |
 | Fire | (STS-NIR only) K I doublet detector with status banner, zoomed chart (line windows red, continuum flanks green), alarm (sound/vibration), presets |
-| Map | Fire detections (red) from the detection journal and survey tracks (blue) of logged sessions on a MapLibre map with Street / Satellite / Terrain layers, as in DBM; tap a detection for its details |
+| Map | Fire detections (flame icons; grey for simulated ones) from the detection journal and survey tracks (blue) of logged sessions on a MapLibre map with Street / Satellite / Terrain layers, as in DBM; tap a detection for its details |
 | Log | **Recording**: timed logging like the Pi's Acquisition Control (interval, 0 = every spectrum; max count; single CSV or one file per spectrum; GPS tagging). **Sessions**: the fire detection journal and the logged sessions; open, share or delete files |
 | Setup | Source (USB / simulator), device info and calibration, acquisition, binning, nonlinearity, fire-detection parameters |
 | Exit | Confirms, stops any log, releases the spectrometer and closes the app |

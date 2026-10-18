@@ -104,13 +104,13 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
                     if (log.active) add(sLog)
                 }.joinToString(", "))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { engine.setRunning(true); onOpenTab(Tab.LIVE) }) { Text(stringResource(R.string.home_btn_live)) }
-                    if (ready.info.fireCapable) OutlinedButton(onClick = { onOpenTab(Tab.FIRE) }) { Text(stringResource(R.string.home_btn_fire)) }
+                    ActionButton(onClick = { engine.setRunning(true); onOpenTab(Tab.LIVE) }, emphasis = true) { Text(stringResource(R.string.home_btn_live)) }
+                    if (ready.info.fireCapable) ActionButton(onClick = { onOpenTab(Tab.FIRE) }) { Text(stringResource(R.string.home_btn_fire)) }
                 }
             } else {
                 Text(stringResource(R.string.home_plug_help),
                     style = MaterialTheme.typography.bodySmall, color = muted)
-                OutlinedButton(onClick = onReconnect) { Text(stringResource(R.string.home_btn_retry)) }
+                ActionButton(onClick = onReconnect, emphasis = true) { Text(stringResource(R.string.home_btn_retry)) }
             }
         }
 

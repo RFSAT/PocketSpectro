@@ -111,8 +111,6 @@
     <!-- %1$s is "Dark" or "Ref". -->
     <string name="stored_ok">%1$s: ✓</string>
     <string name="action_stop">Stop</string>
-    <!-- Start continuous acquisition. -->
-    <string name="action_run">Run</string>
     <!-- Take a single spectrum. -->
     <string name="action_single">Single</string>
     <string name="live_sec_integration">Integration and averaging</string>
@@ -140,10 +138,10 @@
     <string name="fire_emission_continuum">K I emission %1$s %% above continuum (threshold %2$s %%)</string>
     <!-- K I = neutral potassium, keep as is. %1$s and %2$s are percentages; %% prints %. -->
     <string name="fire_emission_mean">K I emission %1$s %% above mean (threshold %2$s %%)</string>
-    <string name="fire_stop_monitoring">Stop monitoring</string>
-    <string name="fire_start_monitoring">Start monitoring</string>
-    <string name="fire_alarm_on">Alarm on</string>
-    <string name="fire_alarm_off">Alarm off</string>
+    <!-- State button, green: the audible/vibration alarm is armed. -->
+    <string name="fire_alarm_on">Alarm ON</string>
+    <!-- State button, red: the alarm is not armed. -->
+    <string name="fire_alarm_off">Alarm OFF</string>
     <!-- "Pi" is the Raspberry Pi system this app replaces; "Recommended" is a button name. -->
     <string name="fire_pi_warning">Pi rule active: the K I lines are compared with the mean of the whole spectrum, so a bright continuum near 766 nm can be reported as fire with no emission lines present. Use Recommended for detection.</string>
     <!-- %1$s and %2$s are wavelengths in nm. -->
@@ -199,9 +197,6 @@
     <string name="gps_no_permission">no permission</string>
     <string name="gps_waiting">waiting for fix…</string>
     <string name="log_allow_location">Allow location</string>
-    <string name="log_start">Start logging</string>
-    <string name="log_resume">Resume</string>
-    <string name="log_pause">Pause</string>
     <string name="log_sec_acq">Acquisition control</string>
     <!-- Time between saved spectra, in seconds. -->
     <string name="log_interval">Interval</string>
@@ -427,4 +422,15 @@
     <string name="simfire_level">Emission</string>
     <string name="simfire_count">Incidents so far</string>
     <string name="simfire_emitting">Simulated flame emitting</string>
+    <!-- State buttons: green while ON, red while OFF; tapping toggles. Keep short; ON/OFF upper case where usual. -->
+    <string name="live_acq_on">Acquisition ON</string>
+    <string name="live_acq_off">Acquisition OFF</string>
+    <string name="fire_monitoring_on">Monitoring ON</string>
+    <string name="fire_monitoring_off">Monitoring OFF</string>
+    <string name="log_logging_on">Logging ON</string>
+    <string name="log_logging_off">Logging OFF</string>
+    <!-- State button during a log, green: spectra are being saved (red state reads "Paused"). -->
+    <string name="log_saving">Saving</string>
+    <!-- Map legend: flame icon of a detection from the simulator. Short, lower case. -->
+    <string name="map_legend_simulated">simulated</string>
 </resources>

@@ -40,17 +40,17 @@ fun SimFireControls(engine: AcquisitionEngine) {
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (m in SimFireMode.entries) {
-                FilterChip(
+                ChoiceChip(
                     selected = cfg.mode == m,
+                    label = stringResource(when (m) {
+                        SimFireMode.OFF -> R.string.simfire_off
+                        SimFireMode.MANUAL -> R.string.simfire_manual
+                        SimFireMode.RANDOM -> R.string.simfire_random
+                    }),
                     onClick = {
                         if (m == SimFireMode.OFF) engine.stopSimFire()
                         update { it.copy(mode = m) }
                     },
-                    label = { Text(stringResource(when (m) {
-                        SimFireMode.OFF -> R.string.simfire_off
-                        SimFireMode.MANUAL -> R.string.simfire_manual
-                        SimFireMode.RANDOM -> R.string.simfire_random
-                    })) },
                 )
             }
         }
@@ -72,8 +72,8 @@ fun SimFireControls(engine: AcquisitionEngine) {
 
         if (cfg.mode == SimFireMode.MANUAL) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { engine.injectSimFire() }) { Text(stringResource(R.string.simfire_inject)) }
-                OutlinedButton(onClick = { engine.stopSimFire() }, enabled = st.active) { Text(stringResource(R.string.action_stop)) }
+                ActionButton(onClick = { engine.injectSimFire() }, emphasis = true) { Text(stringResource(R.string.simfire_inject)) }
+                ActionButton(onClick = { engine.stopSimFire() }, enabled = st.active) { Text(stringResource(R.string.action_stop)) }
             }
             SwitchRow(stringResource(R.string.simfire_hold), st.held, { engine.holdSimFire(it) },
                 detail = stringResource(R.string.simfire_hold_detail))

@@ -4,6 +4,17 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH), so it rises with every version.
 
+## 1.3.0 (build 10300), October 2026
+- Map: fire detections are shown as flame icons (red flame with a yellow core and white outline, readable on
+  street, satellite and terrain maps); detections from the simulator use a grey flame and get their own
+  legend entry. The selection ring now surrounds the flame.
+- One button style throughout the app:
+  - every button, chip and switch has a clearly visible border, also when disabled;
+  - two-state controls are green when ON and red when OFF and show their state: Acquisition ON/OFF,
+    Monitoring ON/OFF, Alarm ON/OFF, Logging ON/OFF, Saving/Paused, and all switches;
+  - single-choice chips (display mode, map layer, simulator mode) show the chosen option in green;
+  - plain actions (Store dark, presets, Share, Delete, dialog buttons...) are outlined, the main action filled.
+
 ## 1.2.0 (build 10200), October 2026
 - Simulator: fire incidents can be injected, on the Fire screen under "Simulated fire incidents":
   - Manual: "Inject fire" starts a burst of the set duration; "Hold flame on" keeps emitting until switched off.

@@ -6,6 +6,8 @@ import androidx.compose.ui.res.stringResource
 import android.os.Build
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +47,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rfsat.pocketspectro.core.AcquisitionEngine
@@ -53,6 +56,7 @@ import com.rfsat.pocketspectro.data.SessionTrack
 import com.rfsat.pocketspectro.data.SessionTracks
 import com.rfsat.pocketspectro.ui.map.EventMap
 import com.rfsat.pocketspectro.ui.map.MapLayer
+import com.rfsat.pocketspectro.ui.map.isSimulated
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -94,12 +98,8 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
         Column(Modifier.align(Alignment.TopStart).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (l in MapLayer.entries) {
-                    FilterChip(
-                        selected = s.mapLayer == l,
-                        onClick = { engine.store.update { it.copy(mapLayer = l) } },
-                        label = { Text(stringResource(l.label)) },
-                        colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
-                    )
+                    ChoiceChip(selected = s.mapLayer == l, label = stringResource(l.label),
+                        onClick = { engine.store.update { it.copy(mapLayer = l) } }, container = MaterialTheme.colorScheme.surface)
                 }
             }
             Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
@@ -108,7 +108,9 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
                         pluralStringResource(R.plurals.map_tracks, tracks.size, tracks.size),
                         style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        LegendDot(FireRed, stringResource(R.string.map_legend_detection)); LegendDot(Color(0xFF1E88E5), stringResource(R.string.map_legend_track))
+                        LegendIcon(R.drawable.ic_map_flame, stringResource(R.string.map_legend_detection))
+                        if (events.any { it.isSimulated() }) LegendIcon(R.drawable.ic_map_flame_sim, stringResource(R.string.map_legend_simulated))
+                        LegendDot(Color(0xFF1E88E5), stringResource(R.string.map_legend_track))
                         LegendDot(Color(0xFF1565C0), stringResource(R.string.map_legend_you))
                     }
                 }
@@ -116,8 +118,8 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
         }
 
         Column(Modifier.align(Alignment.CenterEnd).padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SmallFloatingActionButton(onClick = { fitKey++ }) { Icon(Icons.Filled.FitScreen, stringResource(R.string.map_show_all)) }
-            SmallFloatingActionButton(onClick = { recenterKey++ }) { Icon(Icons.Filled.MyLocation, stringResource(R.string.map_my_position)) }
+            SmallFloatingActionButton(onClick = { fitKey++ }, modifier = Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(12.dp))) { Icon(Icons.Filled.FitScreen, stringResource(R.string.map_show_all)) }
+            SmallFloatingActionButton(onClick = { recenterKey++ }, modifier = Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(12.dp))) { Icon(Icons.Filled.MyLocation, stringResource(R.string.map_my_position)) }
         }
 
         if (events.isEmpty() && tracks.isEmpty()) {
@@ -133,6 +135,14 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
             LaunchedEffect(e) { spectrum = withContext(Dispatchers.IO) { engine.journal.loadSpectrum(e) } }
             EventCard(e, spectrum, onClose = { selected = null }, Modifier.align(Alignment.BottomCenter))
         }
+    }
+}
+
+@Composable
+private fun LegendIcon(@androidx.annotation.DrawableRes icon: Int, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(icon), null, Modifier.size(15.dp))
+        Text(" $label", style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -154,12 +164,12 @@ private fun EventCard(e: FireEvent, spectrum: Pair<DoubleArray, DoubleArray>?, o
         Column(Modifier.verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(if (e.model.endsWith("(simulated)")) R.string.map_fire_detection_sim else R.string.map_fire_detection), color = FireRed, fontWeight = FontWeight.Bold)
+                    Text(stringResource(if (e.isSimulated()) R.string.map_fire_detection_sim else R.string.map_fire_detection), color = FireRed, fontWeight = FontWeight.Bold)
                     Text(SimpleDateFormat("d MMM yyyy, HH:mm:ss", androidx.core.os.ConfigurationCompat.getLocales(androidx.compose.ui.platform.LocalConfiguration.current)[0] ?: Locale.US).format(Date(e.timeMs)),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 ConfidenceBadge(e.confidence)
-                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, stringResource(R.string.action_close)) }
+                androidx.compose.material3.OutlinedIconButton(onClick = onClose, border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant)) { Icon(Icons.Filled.Close, stringResource(R.string.action_close)) }
             }
 
             if (spectrum != null) {
@@ -174,7 +184,7 @@ private fun EventCard(e: FireEvent, spectrum: Pair<DoubleArray, DoubleArray>?, o
                     ),
                     markers = listOf(e.line1Nm, e.line2Nm),
                 )
-                androidx.compose.material3.TextButton(onClick = { fullRange = !fullRange }) {
+                ActionButton(onClick = { fullRange = !fullRange }, compact = true) {
                     Text(stringResource(if (fullRange) R.string.fire_zoom_k else R.string.map_show_full_spectrum))
                 }
             } else {
@@ -233,6 +243,8 @@ private fun MapPreview(layer: MapLayer, tracks: List<SessionTrack>, events: List
     val pts = events.map { it.latitude to it.longitude } + tracks.flatMap { t -> t.points.map { it.latitude to it.longitude } }
     var tiles by remember { mutableStateOf<Map<Triple<Int, Int, Int>, androidx.compose.ui.graphics.ImageBitmap>>(emptyMap()) }
     var viewSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    val flame = androidx.compose.ui.res.painterResource(R.drawable.ic_map_flame)
+    val flameSim = androidx.compose.ui.res.painterResource(R.drawable.ic_map_flame_sim)
     val density = androidx.compose.ui.platform.LocalDensity.current.density
     val view = remember(pts, viewSize, density, selected) {
         PreviewView.fit(pts, viewSize.width, viewSize.height, density)?.let { v ->
@@ -262,11 +274,12 @@ private fun MapPreview(layer: MapLayer, tracks: List<SessionTrack>, events: List
             tr.points.forEachIndexed { i, pt -> val o = p(pt.latitude, pt.longitude); if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y) }
             drawPath(path, Color(0xD91E88E5), style = Stroke(width = 3.5f * density))
         }
+        selected?.let { drawCircle(Color(0xFFFFC107), 21f * density, p(it.latitude, it.longitude), style = Stroke(width = 4f * density)) }
+        val sz = 30f * density
         for (e in events) {
             val o = p(e.latitude, e.longitude)
-            drawCircle(Color.White, 11.5f * density, o); drawCircle(Color(0xFFE53935), 9f * density, o)
+            translate(o.x - sz / 2, o.y - sz / 2) { with(if (e.isSimulated()) flameSim else flame) { draw(androidx.compose.ui.geometry.Size(sz, sz)) } }
         }
-        selected?.let { drawCircle(Color(0xFFFFC107), 17f * density, p(it.latitude, it.longitude), style = Stroke(width = 4f * density)) }
     }
     Box(Modifier.fillMaxSize()) {
         Text(when (layer) {

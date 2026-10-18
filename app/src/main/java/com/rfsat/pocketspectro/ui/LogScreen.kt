@@ -65,19 +65,16 @@ fun LogScreen(engine: AcquisitionEngine, onRequestLocation: () -> Unit) {
                     fix!!.accuracyM?.let { "%.0f".format(Locale.US, it) } ?: "?")
             })
             if (s.gpsTagging && !engine.location.hasPermission()) {
-                OutlinedButton(onClick = onRequestLocation) { Text(stringResource(R.string.log_allow_location)) }
+                ActionButton(onClick = onRequestLocation, emphasis = true) { Text(stringResource(R.string.log_allow_location)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!log.active) {
-                    Button(onClick = { engine.startLog() }, enabled = frame != null || conn is com.rfsat.pocketspectro.core.Connection.Ready) {
-                        Text(stringResource(R.string.log_start))
-                    }
-                } else {
-                    OutlinedButton(onClick = {
-                        if (log.paused) { engine.setRunning(true); engine.pauseLog(false) } else engine.pauseLog(true)
-                    }) { Text(stringResource(if (log.paused) R.string.log_resume else R.string.log_pause)) }
-                    Button(onClick = { engine.stopLog() }) { Text(stringResource(R.string.action_stop)) }
-                }
+                ToggleButton(log.active, stringResource(if (log.active) R.string.log_logging_on else R.string.log_logging_off),
+                    { if (log.active) engine.stopLog() else engine.startLog() },
+                    enabled = log.active || frame != null || conn is com.rfsat.pocketspectro.core.Connection.Ready)
+                // Pause: green while spectra are being saved, red while paused; only meaningful during a log.
+                ToggleButton(log.active && !log.paused, stringResource(if (log.active && !log.paused) R.string.log_saving else R.string.log_paused),
+                    { if (log.paused) { engine.setRunning(true); engine.pauseLog(false) } else engine.pauseLog(true) },
+                    enabled = log.active)
             }
         }
 

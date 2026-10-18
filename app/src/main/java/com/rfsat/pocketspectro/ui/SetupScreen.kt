@@ -56,7 +56,7 @@ fun SetupScreen(engine: AcquisitionEngine, onReconnect: () -> Unit) {
                 KeyValue(stringResource(R.string.set_nl_k), info.nonlinearityCoefficients?.joinToString { "%.4g".format(Locale.US, it) } ?: stringResource(R.string.set_nl_none))
                 KeyValue("K I 766.5 / 769.9 nm", stringResource(R.string.set_k_pixels, Calibration.pixelFor(wl, FireDetector.K_LINE_1_NM), Calibration.pixelFor(wl, FireDetector.K_LINE_2_NM)))
             }
-            OutlinedButton(onClick = onReconnect) { Text(stringResource(R.string.set_reconnect)) }
+            ActionButton(onClick = onReconnect) { Text(stringResource(R.string.set_reconnect)) }
         }
 
         Section(stringResource(R.string.set_sec_acq)) {
