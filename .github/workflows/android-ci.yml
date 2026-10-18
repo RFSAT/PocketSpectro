@@ -85,7 +85,17 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "dist/PocketSpectro_v${APP_VERSION}-release.apk"
           # R8 mapping (also inside the bundle, where Play reads it); kept for decoding stack traces later.
           cp app/build/outputs/mapping/release/mapping.txt "dist/PocketSpectro_v${APP_VERSION}_build${APP_BUILD}-mapping.txt"
+          # Native libraries (MapLibre, AndroidX) as Play's "native debug symbols" file. They are shipped
+          # stripped, so AGP cannot embed symbols; upload this zip by hand in Play Console
+          # (App bundle explorer > this version > Downloads > Native debug symbols).
+          rm -rf "$RUNNER_TEMP/syms" && mkdir -p "$RUNNER_TEMP/syms"
+          unzip -q "$AAB" 'base/lib/*' -d "$RUNNER_TEMP/syms"
+          (cd "$RUNNER_TEMP/syms/base/lib" && zip -qr "$GITHUB_WORKSPACE/dist/PocketSpectro_v${APP_VERSION}_build${APP_BUILD}-native-debug-symbols.zip" .)
+          # "What's new" text for Play: this version's section of CHANGELOG.md.
+          awk -v v="## ${APP_VERSION} " 'index($0, v) == 1 {on = 1; next} /^## / {on = 0} on' CHANGELOG.md \
+            | sed '/^$/d' > "dist/PocketSpectro_v${APP_VERSION}_whats-new.txt"
           echo "### Google Play bundle ready: PocketSpectro_v${APP_VERSION}_build${APP_BUILD}.aab" >> "$GITHUB_STEP_SUMMARY"
+          { echo; echo "What's new:"; echo '```'; cat "dist/PocketSpectro_v${APP_VERSION}_whats-new.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Remove keystore
         if: always()
@@ -104,6 +114,8 @@ jobs:
           path: |
             dist/*.aab
             dist/*-mapping.txt
+            dist/*-native-debug-symbols.zip
+            dist/*_whats-new.txt
           if-no-files-found: error
 
   screenshots:
