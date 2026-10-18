@@ -181,8 +181,6 @@
     <string name="fire_preset_rec">Recommended</string>
     <!-- Button: apply the original Raspberry Pi detector settings. -->
     <string name="fire_preset_pi">Pi preset</string>
-    <string name="fire_sim_flame">Simulate flame (K I doublet)</string>
-    <string name="fire_sim_flame_detail">Simulator only: adds 766.5 / 769.9 nm emission</string>
     <!-- %1$s wavelength, %2$s counts, %3$s signed percentage. -->
     <string name="fire_window_value">%1$s nm \u0020%2$s counts \u0020%3$s %%</string>
     <string name="log_tab_recording">Recording</string>
@@ -321,6 +319,8 @@
     <string name="map_my_position">Go to my position</string>
     <string name="map_empty">No detections yet. Confirmed fire detections with a GPS fix appear here as red markers, and logged sessions draw their survey track in blue.</string>
     <string name="map_fire_detection">Fire detection</string>
+    <!-- Title of a detection caused by the built-in simulator, not a real fire. -->
+    <string name="map_fire_detection_sim">Fire detection (simulated)</string>
     <string name="action_close">Close</string>
     <string name="map_show_full_spectrum">Show full spectrum</string>
     <string name="map_no_spectrum">No spectrum was saved with this detection.</string>
@@ -391,4 +391,40 @@
     <string name="msg_log_failed">Could not write log: %1$s</string>
     <!-- Interface of the built-in simulator. -->
     <string name="iface_simulated">simulated, no USB</string>
+    <!-- Simulator: injected fire incidents (section on the Fire screen, simulator only). -->
+    <string name="simfire_title">Simulated fire incidents</string>
+    <string name="simfire_help">Simulator only. Adds K I emission (766.5 / 769.9 nm) to the simulated spectrum so the detector, alarm, journal and map can be tried without a fire. Detections from simulated incidents are recorded like real ones and marked as simulated; clear them in Log → Sessions.</string>
+    <!-- Mode chip: no simulated fires. Short. -->
+    <string name="simfire_off">Off</string>
+    <!-- Mode chip: fires started by the user. Short. -->
+    <string name="simfire_manual">Manual</string>
+    <!-- Mode chip: fires started at random times. Short. -->
+    <string name="simfire_random">Random</string>
+    <!-- Mean time between random incidents; short field label. -->
+    <string name="simfire_interval">Mean interval</string>
+    <!-- Length of one incident; short field label. -->
+    <string name="simfire_duration">Duration</string>
+    <!-- Emission strength multiplier; short field label. -->
+    <string name="simfire_strength">Strength</string>
+    <string name="simfire_strength_help" formatted="false">Strength 1 gives about 27 % above the continuum at 200 ms; around 0.35 sits at the default 10 % threshold, for testing borderline cases.</string>
+    <string name="simfire_random_help">Incidents start at random (on average once per interval), each with its duration and strength varied by ±50 %. They ramp up and down over about 1.5 s.</string>
+    <!-- Button: start one simulated fire burst now. -->
+    <string name="simfire_inject">Inject fire</string>
+    <string name="simfire_hold">Hold flame on</string>
+    <string name="simfire_hold_detail">Steady emission until switched off</string>
+    <string name="simfire_state_held">flame held on</string>
+    <plurals name="simfire_state_burst">
+        <item quantity="one">incident in progress, %1$d s left</item>
+        <item quantity="other">incident in progress, %1$d s left</item>
+    </plurals>
+    <plurals name="simfire_state_next">
+        <item quantity="one">next incident in about %1$d s</item>
+        <item quantity="other">next incident in about %1$d s</item>
+    </plurals>
+    <string name="simfire_state_waiting_run">waiting: incidents occur while acquiring</string>
+    <string name="simfire_state_idle">no incident</string>
+    <!-- Current emission strength of the simulated flame. -->
+    <string name="simfire_level">Emission</string>
+    <string name="simfire_count">Incidents so far</string>
+    <string name="simfire_emitting">Simulated flame emitting</string>
 </resources>

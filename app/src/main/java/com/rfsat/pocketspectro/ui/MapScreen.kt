@@ -154,7 +154,7 @@ private fun EventCard(e: FireEvent, spectrum: Pair<DoubleArray, DoubleArray>?, o
         Column(Modifier.verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.map_fire_detection), color = FireRed, fontWeight = FontWeight.Bold)
+                    Text(stringResource(if (e.model.endsWith("(simulated)")) R.string.map_fire_detection_sim else R.string.map_fire_detection), color = FireRed, fontWeight = FontWeight.Bold)
                     Text(SimpleDateFormat("d MMM yyyy, HH:mm:ss", androidx.core.os.ConfigurationCompat.getLocales(androidx.compose.ui.platform.LocalConfiguration.current)[0] ?: Locale.US).format(Date(e.timeMs)),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

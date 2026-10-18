@@ -123,6 +123,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+          # Both jobs compute the same cache key; only the build job saves it, so the two parallel jobs
+          # no longer race to write it ("Unable to reserve cache ... another job may be creating this cache").
+          cache-read-only: true
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
       - name: Render screenshots

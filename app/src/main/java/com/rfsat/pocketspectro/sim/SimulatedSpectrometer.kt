@@ -18,7 +18,13 @@ class SimulatedSpectrometer(seed: Int = 1, private val nir: Boolean = true) : Sp
     private var integrationUs = 100_000L
     private var shutterOpen = true
 
-    @Volatile var fireOn = false
+    /** Fire incidents: manual bursts, a held flame, or random bursts (see [SimFireInjector]). */
+    val fire = SimFireInjector(seed.toLong() + 7)
+
+    /** Held flame on/off (manual). Kept for callers that only need a steady flame. */
+    var fireOn: Boolean
+        get() = fire.hold
+        set(v) { fire.hold = v }
     /** Places a sample with water (970 nm) and C-H (915 nm) absorption bands in the beam. */
     @Volatile var sampleOn = false
 
@@ -54,6 +60,7 @@ class SimulatedSpectrometer(seed: Int = 1, private val nir: Boolean = true) : Sp
         val wl = current.wavelengths()
         val bin = 1 shl current.binningFactor
         val tScale = integrationUs / 100_000.0
+        val flame = fire.level(System.currentTimeMillis())
         return IntArray(wl.size) { i ->
             val l = wl[i]
             var signal = 0.0
@@ -62,8 +69,8 @@ class SimulatedSpectrometer(seed: Int = 1, private val nir: Boolean = true) : Sp
                 val cont = 3200.0 * exp(-((l - 860.0) / 210.0).pow(2)) * (1.0 / (1.0 + exp(-(l - 715.0) / 12.0)) * 0.7 + 0.3)
                 val trans = if (sampleOn) 0.55 * exp(-0.9 * band(l, 970.0, 28.0) - 0.4 * band(l, 915.0, 14.0) - 0.15 * band(l, 740.0, 30.0)) else 1.0
                 signal += cont * tScale * trans
-                if (fireOn) {
-                    signal += 900.0 * tScale * (line(l, 766.5) + 0.65 * line(l, 769.9))
+                if (flame > 0.0) {
+                    signal += 900.0 * flame * tScale * (line(l, 766.5) + 0.65 * line(l, 769.9))
                 }
             }
             val dark = 1480.0 + 12.0 * tScale

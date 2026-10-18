@@ -370,6 +370,33 @@ class ScreenshotTest {
         shot("14_setup_full_length")
     }
 
+    @Test @Config(qualifiers = TALL) fun t06_fireSimManualFull() {
+        prepare()
+        engine.applyRecommendedFirePreset()
+        engine.store.update { it.copy(alarmSound = false, alarmVibrate = false,
+            simFire = com.rfsat.pocketspectro.sim.SimFireConfig(mode = com.rfsat.pocketspectro.sim.SimFireMode.MANUAL, durationSec = 20.0)) }
+        engine.armFire(true)
+        engine.setRunning(true)
+        waitFor { engine.connection.value is com.rfsat.pocketspectro.core.Connection.Ready }
+        engine.injectSimFire()
+        show(Tab.FIRE)
+        waitFor { engine.frame.value?.fireConfirmed == true }
+        freshFrames(1)
+        shot("16_fire_sim_manual_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun t07_fireSimRandomFull() {
+        prepare()
+        engine.applyRecommendedFirePreset()
+        engine.store.update { it.copy(alarmSound = false, alarmVibrate = false,
+            simFire = com.rfsat.pocketspectro.sim.SimFireConfig(mode = com.rfsat.pocketspectro.sim.SimFireMode.RANDOM, meanIntervalSec = 120.0)) }
+        engine.armFire(true)
+        engine.setRunning(true)
+        show(Tab.FIRE)
+        freshFrames(2)
+        shot("17_fire_sim_random_full_length")
+    }
+
     // ---- Google Play listing set (9:16, no version shown) -> build/screenshots/play/ ----
 
     private fun storeShot(name: String) {

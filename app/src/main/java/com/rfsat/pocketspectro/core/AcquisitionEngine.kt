@@ -107,6 +107,9 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
     val fireArmed: StateFlow<Boolean> = _fireArmed.asStateFlow()
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val messages: SharedFlow<String> = _messages
+    private val _simFire = MutableStateFlow(com.rfsat.pocketspectro.sim.SimFireStatus())
+    /** Simulator only: the injected-fire state, refreshed with every frame. */
+    val simFire: StateFlow<com.rfsat.pocketspectro.sim.SimFireStatus> = _simFire.asStateFlow()
     private val _shutterAvailable = MutableStateFlow(true)
     val shutterAvailable: StateFlow<Boolean> = _shutterAvailable.asStateFlow()
 
@@ -177,6 +180,8 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
 
     private fun attach(dev: Spectrometer) {
         device = dev
+        (dev as? SimulatedSpectrometer)?.fire?.config = store.value.simFire
+        refreshSimFire()
         if (!dev.info.fireCapable) { _fireArmed.value = false; alarm.stop() }
         appliedIntegrationUs = -1
         appliedBinning = -1
@@ -213,6 +218,24 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
     fun captureReference() { referenceRequest = true }
     fun clearDark() { _dark.value = null }
     fun clearReference() { _reference.value = null }
+
+    /** Simulator: starts a fire burst now with the configured duration and strength. */
+    fun injectSimFire() {
+        val sim = simulator ?: return
+        sim.fire.config = store.value.simFire
+        sim.fire.inject(System.currentTimeMillis())
+        refreshSimFire()
+    }
+
+    /** Simulator: holds a flame on (manual) or switches it off. */
+    fun holdSimFire(on: Boolean) { simulator?.fire?.hold = on; refreshSimFire() }
+
+    /** Simulator: ends the current burst and any held flame. */
+    fun stopSimFire() { simulator?.fire?.stop(); refreshSimFire() }
+
+    private fun refreshSimFire() {
+        _simFire.value = simulator?.fire?.status(System.currentTimeMillis()) ?: com.rfsat.pocketspectro.sim.SimFireStatus()
+    }
 
     fun armFire(on: Boolean) {
         _fireArmed.value = on
@@ -276,6 +299,7 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
     }
 
     private fun syncDevice(dev: Spectrometer, s: AppSettings) {
+        (dev as? SimulatedSpectrometer)?.fire?.config = s.simFire
         if (s.binningFactor != appliedBinning) {
             dev.setBinningFactor(s.binningFactor)
             appliedBinning = s.binningFactor
@@ -373,6 +397,7 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
         lastFireConfirmed = confirmed
 
         val now = System.currentTimeMillis()
+        if (dev is SimulatedSpectrometer) _simFire.value = dev.fire.status(now)
         _frame.value = Frame(
             timeMs = now, wavelengths = wl, meanRaw = meanRaw, counts = counts, display = display,
             mode = s.displayMode, needsReference = needsRef, darkCorrected = dark != null, nlCorrected = nlApplied,

@@ -42,7 +42,6 @@ fun FireScreen(engine: AcquisitionEngine) {
     var showAll by remember { mutableStateOf(false) }
     var showFull by remember { mutableStateOf(false) }
     val sim = engine.simulator
-    var simFire by remember(sim) { mutableStateOf(sim?.fireOn ?: false) }
 
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
         val r = frame?.fire
@@ -151,11 +150,8 @@ fun FireScreen(engine: AcquisitionEngine) {
                 OutlinedButton(onClick = { engine.applyRecommendedFirePreset() }) { Text(stringResource(R.string.fire_preset_rec)) }
                 OutlinedButton(onClick = { engine.applyPiFirePreset() }) { Text(stringResource(R.string.fire_preset_pi)) }
             }
-            if (sim != null) {
-                SwitchRow(stringResource(R.string.fire_sim_flame), simFire, { simFire = it; sim.fireOn = it },
-                    detail = stringResource(R.string.fire_sim_flame_detail))
-            }
         }
+        if (sim != null) SimFireControls(engine)
     }
 }
 

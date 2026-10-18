@@ -35,6 +35,8 @@ data class AppSettings(
     val alarmVibrate: Boolean = true,
     val keepScreenOn: Boolean = true,
     val mapLayer: com.rfsat.pocketspectro.ui.map.MapLayer = com.rfsat.pocketspectro.ui.map.MapLayer.STREET,
+    // Simulator only: injected fire incidents
+    val simFire: com.rfsat.pocketspectro.sim.SimFireConfig = com.rfsat.pocketspectro.sim.SimFireConfig(),
 ) {
     val integrationUs: Long get() = (integrationMs * 1000.0).toLong().coerceIn(10L, 85_000_000L)
 }
@@ -85,6 +87,12 @@ class SettingsStore(context: Context) {
             alarmVibrate = prefs.getBoolean("alarmVibe", d.alarmVibrate),
             keepScreenOn = prefs.getBoolean("screenOn", d.keepScreenOn),
             mapLayer = enumOr(prefs.getString("mapLayer", null), d.mapLayer),
+            simFire = com.rfsat.pocketspectro.sim.SimFireConfig(
+                mode = enumOr(prefs.getString("simFireMode", null), d.simFire.mode),
+                meanIntervalSec = prefs.getFloat("simFireInterval", d.simFire.meanIntervalSec.toFloat()).toDouble(),
+                durationSec = prefs.getFloat("simFireDuration", d.simFire.durationSec.toFloat()).toDouble(),
+                strength = prefs.getFloat("simFireStrength", d.simFire.strength.toFloat()).toDouble(),
+            ),
         )
     }
 
@@ -117,6 +125,10 @@ class SettingsStore(context: Context) {
             .putBoolean("alarmVibe", s.alarmVibrate)
             .putBoolean("screenOn", s.keepScreenOn)
             .putString("mapLayer", s.mapLayer.name)
+            .putString("simFireMode", s.simFire.mode.name)
+            .putFloat("simFireInterval", s.simFire.meanIntervalSec.toFloat())
+            .putFloat("simFireDuration", s.simFire.durationSec.toFloat())
+            .putFloat("simFireStrength", s.simFire.strength.toFloat())
             .apply()
     }
 

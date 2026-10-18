@@ -4,6 +4,15 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH), so it rises with every version.
 
+## 1.2.0 (build 10200), October 2026
+- Simulator: fire incidents can be injected, on the Fire screen under "Simulated fire incidents":
+  - Manual: "Inject fire" starts a burst of the set duration; "Hold flame on" keeps emitting until switched off.
+  - Random: bursts start at random (Poisson, set mean interval), each with duration and strength varied ±50 %.
+  - Strength scales the K I lines (1 = about 27 % above the continuum at 200 ms; 0.35 = the 10 % threshold).
+  - Bursts ramp up and down over about 1.5 s, so the confirmation frames and alarm are exercised.
+  - Detections go through the normal detector, alarm, journal and map; on the map they are titled
+    "Fire detection (simulated)". Settings are remembered.
+
 ## 1.1.4 (build 10104), October 2026
 - All on-screen text moved into `res/values/strings.xml` (about 370 entries, with plurals and translator
   notes), so Google Play's automatic translation can translate the interface. The app itself is unchanged

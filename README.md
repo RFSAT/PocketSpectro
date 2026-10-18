@@ -10,7 +10,7 @@ It started as the port of the Raspberry Pi Zero W "Wi-Fi STS-NIR" web server (20
 Apache/PHP served the UI and a C++ daemon talked to the spectrometer. On the phone, the app talks to the
 spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Ltd. Version 1.1.4 (build 10104).
+RFSAT Ltd. Version 1.2.0 (build 10200).
 
 ## Hardware
 
@@ -55,7 +55,10 @@ analysis runs.
 | Exit | Confirms, stops any log, releases the spectrometer and closes the app |
 
 There is a built-in **simulator** (Setup → Use simulator) for trying the app without hardware and for
-Play review. It can add a flame (K I doublet) and a sample with absorption bands.
+Play review. It can add a sample with absorption bands (Setup) and inject fire incidents (Fire screen →
+Simulated fire incidents): manually, as a timed burst or a flame held on, or at random with a set mean
+interval, duration and strength. Detections from simulated incidents go through the normal detector,
+alarm, journal and map, where they are titled "Fire detection (simulated)".
 
 ## Processing chain
 
