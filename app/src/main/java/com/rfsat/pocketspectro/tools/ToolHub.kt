@@ -24,6 +24,8 @@ sealed interface Availability {
     data object Ok : Availability
     /** Needs a unit covering [lo]..[hi] nm. */
     data class NeedsRange(val lo: Double, val hi: Double) : Availability
+    /** Usable, but the unit covers only [coveredLo]..[coveredHi] of the [lo]..[hi] nm the tool needs. */
+    data class Partial(val lo: Double, val hi: Double, val coveredLo: Double, val coveredHi: Double) : Availability
 }
 
 fun ToolId.availability(info: DeviceInfo?): Availability {
@@ -32,7 +34,11 @@ fun ToolId.availability(info: DeviceInfo?): Availability {
     return when (this) {
         ToolId.FIRE -> if (info.fireCapable) Availability.Ok else Availability.NeedsRange(755.0, 785.0)
         ToolId.VEGETATION -> if (Vegetation.supported(wl)) Availability.Ok else Availability.NeedsRange(660.0, 780.0)
-        ToolId.COLOUR -> if (Colorimetry.supported(wl)) Availability.Ok else Availability.NeedsRange(380.0, 780.0)
+        ToolId.COLOUR -> when {
+            Colorimetry.supported(wl) -> Availability.Ok
+            Colorimetry.partlySupported(wl) -> Colorimetry.coveredRange(wl).let { Availability.Partial(380.0, 780.0, it.start, it.endInclusive) }
+            else -> Availability.NeedsRange(380.0, 780.0)
+        }
         else -> Availability.Ok
     }
 }

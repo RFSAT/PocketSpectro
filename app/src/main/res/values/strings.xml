@@ -677,4 +677,16 @@
     <string name="set_sim_model_value">%1$s (simulated)</string>
     <string name="set_avoid_o2">Skip the oxygen band (760 nm)</string>
     <string name="set_avoid_o2_detail">Keeps the continuum flank below the atmospheric O2 A band, which in daylight sits next to the K I lines. Recommended outdoors.</string>
+    <!-- Tools list: tool usable with a partial wavelength range. %1$s-%2$s covered, %3$s-%4$s needed (nm). -->
+    <string name="tools_partial_range">Partial: this unit covers %1$s–%2$s nm of the %3$s–%4$s nm needed</string>
+    <string name="colour_partial_title">Part of the visible range only</string>
+    <!-- %1$s-%2$s covered range in nm; %3$s percent of the eye's colour response; %4$s list of hue names. -->
+    <string name="colour_partial_warning">This spectrometer covers %1$s–%2$s nm of the visible range (380–780 nm), about %3$s %% of what the eye responds to. Only colours that differ there can be detected and monitored: %4$s. Outside the range the reflectance is taken as the nearest measured value, so L*a*b* values are approximate; compare only with a standard measured on this spectrometer.</string>
+    <!-- Hue names, lower case, used in a list. -->
+    <string name="colour_band_violet">violet</string>
+    <string name="colour_band_blue">blue</string>
+    <string name="colour_band_green">green</string>
+    <string name="colour_band_yellow">yellow</string>
+    <string name="colour_band_orange">orange</string>
+    <string name="colour_band_red">red</string>
 </resources>

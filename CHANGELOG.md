@@ -7,6 +7,9 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH).
 
+## 1.5.0 (build 10500)
+The Colour tool can now be used with spectrometers that cover only part of the visible range, such as the STS-NIR: it shows which part is covered and which colours can still be detected and monitored, and compares samples with a standard measured on the same unit.
+
 ## 1.4.2 (build 10402)
 A maintenance release with the improvements of 1.4.1: the app displays edge to edge on all Android versions and is ready for Android 15 and later, and text fields stay above the on-screen keyboard.
 

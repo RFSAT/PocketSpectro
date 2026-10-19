@@ -131,7 +131,7 @@ private fun ToolList(engine: AcquisitionEngine, onReconnect: () -> Unit) {
         }
         for (t in ToolId.entries) {
             val av = t.availability(info)
-            val ok = av == Availability.Ok
+            val ok = av !is Availability.NeedsRange
             Card(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp).clickable { engine.openTool(t) },
                 border = BorderStroke(1.5.dp, if (ok) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
@@ -150,6 +150,10 @@ private fun ToolList(engine: AcquisitionEngine, onReconnect: () -> Unit) {
                         if (av is Availability.NeedsRange) Text(stringResource(R.string.tools_needs_range,
                             "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi)),
                             style = MaterialTheme.typography.labelSmall, color = OffRed, fontWeight = FontWeight.SemiBold)
+                        if (av is Availability.Partial) Text(stringResource(R.string.tools_partial_range,
+                            "%.0f".format(Locale.US, av.coveredLo), "%.0f".format(Locale.US, av.coveredHi),
+                            "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi)),
+                            style = MaterialTheme.typography.labelSmall, color = WarnAmber, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

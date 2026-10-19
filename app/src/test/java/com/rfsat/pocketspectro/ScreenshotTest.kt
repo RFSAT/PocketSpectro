@@ -538,6 +538,22 @@ class ScreenshotTest {
         shot("28_tool_kinetics_full_length")
     }
 
+    @Test @Config(qualifiers = TALL) fun u10_colourPartialNir() {
+        prepare()
+        tool(com.rfsat.pocketspectro.tools.ToolId.COLOUR)
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Reflect(com.rfsat.pocketspectro.sim.SimTarget.TOMATO_UNRIPE))
+        darkAndReference()
+        engine.setRunning(true)
+        freshFrames(2)
+        val f = engine.frame.value!!
+        val lab = com.rfsat.pocketspectro.tools.Colorimetry.lab(com.rfsat.pocketspectro.tools.Colorimetry.reflectanceXYZ(f.wavelengths, f.counts.indices.map { f.counts[it] / f.reference!![it] }.toDoubleArray()))
+        engine.tools.colourUpdate { it.copy(standard = lab) }
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Reflect(com.rfsat.pocketspectro.sim.SimTarget.TOMATO_RIPE))
+        show(Tab.TOOLS)
+        freshFrames(3)
+        shot("26b_tool_colour_partial_nir_full_length")
+    }
+
     @Test fun u09_mapWithToolResults() {
         prepare()
         seedMapData()

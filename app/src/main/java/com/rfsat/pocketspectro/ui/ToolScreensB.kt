@@ -1,6 +1,7 @@
 package com.rfsat.pocketspectro.ui
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -153,21 +154,36 @@ fun ColourTool(engine: AcquisitionEngine) {
     val lab = xyz?.let { Colorimetry.lab(it) }
     val rgb = xyz?.let { Colorimetry.srgb(it) }
     val de = if (lab != null && st.standard != null) Colorimetry.deltaE2000(st.standard!!, lab) else null
+    val conn by engine.connection.collectAsState()
+    val unitWl = (conn as? com.rfsat.pocketspectro.core.Connection.Ready)?.info?.wavelengths()
+    val partial = unitWl != null && unitWl.isNotEmpty() && !Colorimetry.supported(unitWl)
 
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
         AcquisitionRow(engine)
+        if (partial && unitWl != null) {
+            // Only part of 380-780 nm: say which colours can still be told apart.
+            val r = Colorimetry.coveredRange(unitWl)
+            val bands = Colorimetry.coveredBands(unitWl).map { stringResource(hueBandRes(it)) }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)
+                .background(WarnAmber.copy(alpha = 0.18f), androidx.compose.foundation.shape.RoundedCornerShape(10.dp)).padding(10.dp)) {
+                Text(stringResource(R.string.colour_partial_title), fontWeight = FontWeight.Bold, color = WarnAmber)
+                Text(stringResource(R.string.colour_partial_warning, "%.0f".format(Locale.US, r.start), "%.0f".format(Locale.US, r.endInclusive),
+                    "%.0f".format(Locale.US, Colorimetry.coverage(unitWl) * 100),
+                    if (bands.isEmpty()) "—" else bands.joinToString(", ")), style = MaterialTheme.typography.bodySmall)
+            }
+        }
         if (lab == null || rgb == null || xyz == null) {
             Text(stringResource(R.string.colour_needs_white), Modifier.padding(horizontal = 16.dp, vertical = 6.dp), color = WarnAmber)
         } else {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Swatch(Color(rgb[0], rgb[1], rgb[2]), 72)
-                Spacer(Modifier.width(14.dp))
+                // No swatch from a partial range: the missing part of the spectrum would make it a guess.
+                if (!partial) { Swatch(Color(rgb[0], rgb[1], rgb[2]), 72); Spacer(Modifier.width(14.dp)) }
                 Column {
-                    Text("L* ${f(lab.l, 1)}   a* ${f(lab.a, 1)}   b* ${f(lab.b, 1)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text((if (partial) "≈ " else "") + "L* ${f(lab.l, 1)}   a* ${f(lab.a, 1)}   b* ${f(lab.b, 1)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Text(stringResource(R.string.colour_chroma_hue, f(lab.chroma, 1), f(lab.hueDeg, 0)), style = MaterialTheme.typography.bodySmall)
-                    Text("X ${f(xyz.x, 1)}  Y ${f(xyz.y, 1)}  Z ${f(xyz.z, 1)}  ·  x ${f(xyz.chromaticity.first, 4)}  y ${f(xyz.chromaticity.second, 4)}",
+                    if (!partial) Text("X ${f(xyz.x, 1)}  Y ${f(xyz.y, 1)}  Z ${f(xyz.z, 1)}  ·  x ${f(xyz.chromaticity.first, 4)}  y ${f(xyz.chromaticity.second, 4)}",
                         style = MaterialTheme.typography.bodySmall)
-                    Text(hex(rgb) + "  ·  " + stringResource(R.string.colour_conditions), style = MaterialTheme.typography.labelSmall,
+                    Text((if (partial) "" else hex(rgb) + "  ·  ") + stringResource(R.string.colour_conditions), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -351,4 +367,13 @@ private fun shareSeries(context: android.content.Context, engine: AcquisitionEng
     val uri = FileProvider.getUriForFile(context, context.packageName + ".files", f)
     val i = Intent(Intent.ACTION_SEND).setType("text/csv").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     try { context.startActivity(Intent.createChooser(i, f.name)) } catch (_: Exception) {}
+}
+
+private fun hueBandRes(b: Colorimetry.HueBand) = when (b) {
+    Colorimetry.HueBand.VIOLET -> R.string.colour_band_violet
+    Colorimetry.HueBand.BLUE -> R.string.colour_band_blue
+    Colorimetry.HueBand.GREEN -> R.string.colour_band_green
+    Colorimetry.HueBand.YELLOW -> R.string.colour_band_yellow
+    Colorimetry.HueBand.ORANGE -> R.string.colour_band_orange
+    Colorimetry.HueBand.RED -> R.string.colour_band_red
 }

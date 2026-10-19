@@ -48,8 +48,37 @@ object Colorimetry {
         return D65_10NM[i] + t * (D65_10NM[i + 1] - D65_10NM[i])
     }
 
-    /** The visible range must be covered for colour work. */
+    /** The whole visible range (380-780 nm) is covered: full colour measurement. */
     fun supported(wl: DoubleArray) = Spectra.covers(wl, 380.0, 780.0)
+
+    /** At least 40 nm of the visible range is covered: colour differences inside it can be monitored. */
+    fun partlySupported(wl: DoubleArray) = wl.isNotEmpty() && minOf(wl.last(), 780.0) - maxOf(wl.first(), 380.0) >= 40.0
+
+    /** Part of 380-780 nm the spectrometer covers. */
+    fun coveredRange(wl: DoubleArray) = maxOf(wl.first(), 380.0)..minOf(wl.last(), 780.0)
+
+    /**
+     * Share (0..1) of the eye's colour response (D65 x CMFs, summed over x, y and z) that falls inside
+     * the covered range. Outside it the reflectance is taken as the nearest measured value, so colour
+     * values are approximate and only differences inside the covered range are seen.
+     */
+    fun coverage(wl: DoubleArray): Double {
+        val r = coveredRange(wl)
+        var inside = 0.0; var all = 0.0
+        for (l in GRID) { val w = d65(l) * (xBar(l) + yBar(l) + zBar(l)); all += w; if (l in r) inside += w }
+        return if (all > 0) inside / all else 0.0
+    }
+
+    /** Hue bands of the visible spectrum, for telling the user which colours a partial unit can follow. */
+    enum class HueBand(val lo: Double, val hi: Double) {
+        VIOLET(380.0, 450.0), BLUE(450.0, 495.0), GREEN(495.0, 570.0), YELLOW(570.0, 590.0), ORANGE(590.0, 620.0), RED(620.0, 780.0)
+    }
+
+    /** Hue bands at least half covered by the spectrometer. */
+    fun coveredBands(wl: DoubleArray): List<HueBand> {
+        val r = coveredRange(wl)
+        return HueBand.entries.filter { b -> (minOf(b.hi, r.endInclusive) - maxOf(b.lo, r.start)) >= 0.5 * (b.hi - b.lo) }
+    }
 
     private val GRID = Spectra.grid(380.0, 780.0, 5.0)
 

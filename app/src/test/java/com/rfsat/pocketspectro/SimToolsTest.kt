@@ -121,4 +121,17 @@ class SimToolsTest {
         println("daylight leaf: K1 %.1f %%, K2 %.1f %%, fire=${r.fire}".format(r.window1.percentAboveFloor, r.window2.percentAboveFloor))
         assertFalse(r.fire)
     }
+
+    /** An NIR unit sees only the red end of the visible range: ripeness (green vs red) still shows. */
+    @Test fun partialColourOnNirSimulator() {
+        val b = Bench(SimModel.NIR)
+        assertFalse(Colorimetry.supported(b.wl))
+        assertTrue(Colorimetry.partlySupported(b.wl))
+        assertEquals(listOf(Colorimetry.HueBand.RED), Colorimetry.coveredBands(b.wl))
+        assertTrue(Colorimetry.coverage(b.wl) in 0.02..0.15)
+        val white = SimScene.Reflect(SimTarget.WHITE)
+        fun lab(t: SimTarget) = Colorimetry.lab(Colorimetry.reflectanceXYZ(b.wl, b.ratio(SimScene.Reflect(t), white)))
+        assertTrue(Colorimetry.deltaE2000(lab(SimTarget.TOMATO_UNRIPE), lab(SimTarget.TOMATO_RIPE)) > 5)
+        assertFalse(Colorimetry.partlySupported(DoubleArray(10) { 900.0 + it }))
+    }
 }

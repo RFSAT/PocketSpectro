@@ -12,7 +12,7 @@ implementation of fire detection with the Ocean Optics NIR microspectrometer, de
 in the [AF3 project (FP7-SEC)](https://rfsat.com/index.php/en/projects-and-activities/completed/af3-fp7-sec).
 On the phone, the app talks to the spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Limited. Version 1.4.2 (build 10402).
+RFSAT Limited. Version 1.5.0 (build 10500).
 
 ## Hardware
 
@@ -78,7 +78,7 @@ blank cuvette by itself.
 | Vegetation and crops | NDVI, red-edge position (linear interpolation), CIre, WBI (900/970), PRI where covered; GPS survey points coloured by NDVI on the map | `tools/Vegetation.kt` |
 | Spectral match | Library of reference spectra (`files/library/*.csv`); score = 1 − 5·RMS residual / level after scaling the library spectrum to the unknown | `tools/SpectralLibrary.kt` |
 | Concentration | Beer–Lambert calibration line from standards (slope, intercept, R²) and the unknown's concentration | `tools/Quantitative.kt` |
-| Colour | CIE XYZ / L\*a\*b\* under D65 (2° observer, Wyman 2013 CMF fit), sRGB swatch, CIEDE2000 against a standard | `tools/Colorimetry.kt` |
+| Colour | CIE XYZ / L\*a\*b\* under D65 (2° observer, Wyman 2013 CMF fit), sRGB swatch, CIEDE2000 against a standard. With a unit covering only part of 380–780 nm (at least 40 nm, e.g. STS-NIR 636–780 nm) it runs in partial mode: it reports the covered range, the share of the eye's colour response it holds and the hues it can follow, extends the reflectance beyond the range with the nearest measured value, labels L\*a\*b\* as approximate, drops the swatch and is meant for ΔE monitoring against a standard measured on the same unit | `tools/Colorimetry.kt` |
 | Light source / LED | Peak, FWHM, centroid, xy, CCT (McCamy), PAR photon fraction; response correction from a lamp of known temperature; lux and PPFD after scaling to a lux meter | `tools/Quantitative.kt` |
 | Time series / kinetics | Absorbance, ratio or counts at one wavelength against time; first-order fit (k, half-life, R²); CSV export | `tools/Quantitative.kt` |
 
