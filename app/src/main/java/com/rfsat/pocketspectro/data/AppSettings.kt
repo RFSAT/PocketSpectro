@@ -39,6 +39,8 @@ data class AppSettings(
     val mapLayer: com.rfsat.pocketspectro.ui.map.MapLayer = com.rfsat.pocketspectro.ui.map.MapLayer.STREET,
     // Simulator only: injected fire incidents
     val simFire: com.rfsat.pocketspectro.sim.SimFireConfig = com.rfsat.pocketspectro.sim.SimFireConfig(),
+    /** Fire-watch: web address (HTTPS) that receives a JSON message for every confirmed fire; empty = off. */
+    val alertUrl: String = "",
 ) {
     val integrationUs: Long get() = (integrationMs * 1000.0).toLong().coerceIn(10L, 85_000_000L)
 }
@@ -91,6 +93,7 @@ class SettingsStore(context: Context) {
             alarmVibrate = prefs.getBoolean("alarmVibe", d.alarmVibrate),
             keepScreenOn = prefs.getBoolean("screenOn", d.keepScreenOn),
             mapLayer = enumOr(prefs.getString("mapLayer", null), d.mapLayer),
+            alertUrl = prefs.getString("alertUrl", d.alertUrl) ?: d.alertUrl,
             simFire = com.rfsat.pocketspectro.sim.SimFireConfig(
                 mode = enumOr(prefs.getString("simFireMode", null), d.simFire.mode),
                 meanIntervalSec = prefs.getFloat("simFireInterval", d.simFire.meanIntervalSec.toFloat()).toDouble(),
@@ -131,6 +134,7 @@ class SettingsStore(context: Context) {
             .putBoolean("alarmVibe", s.alarmVibrate)
             .putBoolean("screenOn", s.keepScreenOn)
             .putString("mapLayer", s.mapLayer.name)
+            .putString("alertUrl", s.alertUrl)
             .putString("simFireMode", s.simFire.mode.name)
             .putFloat("simFireInterval", s.simFire.meanIntervalSec.toFloat())
             .putFloat("simFireDuration", s.simFire.durationSec.toFloat())

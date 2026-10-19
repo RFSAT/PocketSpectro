@@ -56,17 +56,17 @@ fun FireScreen(engine: AcquisitionEngine) {
             Modifier.fillMaxWidth().padding(12.dp).background(bg, RoundedCornerShape(16.dp)).padding(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(title, fontSize = 28.sp, fontWeight = FontWeight.Bold,
-                color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White,
-                textAlign = TextAlign.Center)
-            if (r != null && (confirmed || r.fire)) {
-                Text(stringResource(R.string.fire_confidence, "%.0f".format(Locale.US, r.confidence.score)), fontWeight = FontWeight.SemiBold,
-                    color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White)
-            }
+            // The banner keeps the same height whatever the state, so nothing below it moves:
+            // one-line title, the confidence line always reserved, the emission line always two lines.
+            val fg = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White
+            FitText(title, Modifier.fillMaxWidth(), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = fg, textAlign = TextAlign.Center)
             if (r != null) {
+                Reserve(confirmed || r.fire) {
+                    Text(stringResource(R.string.fire_confidence, "%.0f".format(Locale.US, r.confidence.score)), fontWeight = FontWeight.SemiBold, color = fg)
+                }
                 Text(stringResource(if (r.baselineMode == FireDetector.Baseline.LOCAL_CONTINUUM) R.string.fire_emission_continuum
                     else R.string.fire_emission_mean, "%.1f".format(Locale.US, r.maxPercent), s.fire.thresholdPercent.toString()),
-                    color = if (bg == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurface else Color.White)
+                    color = fg, minLines = 2, textAlign = TextAlign.Center)
             }
         }
 
@@ -127,18 +127,25 @@ fun FireScreen(engine: AcquisitionEngine) {
                 val c = r.confidence
                 KeyValue(stringResource(R.string.fire_confidence_label), stringResource(R.string.fire_confidence_detail,
                     "%.0f".format(Locale.US, c.score), "%.1f".format(Locale.US, c.snr1), "%.1f".format(Locale.US, c.snr2),
-                    if (c.ratio.isFinite()) "%.2f".format(Locale.US, c.ratio) else "—"))
+                    if (c.ratio.isFinite()) "%.2f".format(Locale.US, c.ratio) else "—"), live = true)
                 KeyValue(stringResource(R.string.fire_peak_finder), stringResource(if (s.fire.algorithm == FireDetector.Algorithm.PI_IDENTICAL)
                     R.string.alg_pi_identical else R.string.alg_local_max))
             }
-            Section(stringResource(if (s.fire.baseline == FireDetector.Baseline.GLOBAL_MEAN) R.string.fire_other_mean else R.string.fire_other_local)) {
-                val list = if (showAll) r.otherMaxima else r.otherMaxima.sortedByDescending { it.percentAboveFloor }.take(5)
-                for (p in list) KeyValue("%.2f nm".format(Locale.US, p.wavelengthNm), stringResource(R.string.fire_other_value,
-                    "%.0f".format(Locale.US, p.intensity), "%.1f".format(Locale.US, p.percentAboveFloor)))
-                if (r.otherMaxima.size > 5) ActionButton(onClick = { showAll = !showAll }, compact = true) {
-                    Text(if (showAll) stringResource(R.string.fire_show_top5) else stringResource(R.string.fire_show_all, r.otherMaxima.size))
-                }
-            }
+        }
+
+        // Flame temperature from the continuum the fire adds to the scene (fixed rows: nothing moves when it changes).
+        val ft by engine.tools.fireTemp.collectAsState()
+        Section(stringResource(R.string.ftemp_title)) {
+            val t = ft.result
+            KeyValue(stringResource(R.string.temp_kelvin), t?.let { "%.0f K  (%.0f °C)".format(Locale.US, it.kelvin, it.celsius) } ?: "—", live = true)
+            KeyValue(stringResource(R.string.temp_fit), t?.let { "R² %.3f · %d px".format(Locale.US, it.r2, it.pixels) } ?: "—", live = true)
+            KeyValue(stringResource(R.string.ftemp_note), stringResource(when {
+                !ft.calibrated -> R.string.ftemp_needs_cal
+                t == null -> R.string.ftemp_waiting
+                t.sunLike -> R.string.ftemp_sun_like
+                t.kelvin < 800 -> R.string.ftemp_smouldering
+                else -> R.string.ftemp_flame
+            }), live = true)
         }
 
         Section(stringResource(R.string.fire_sec_presets)) {
@@ -152,12 +159,30 @@ fun FireScreen(engine: AcquisitionEngine) {
             }
         }
         if (sim != null) SimFireControls(engine)
+
+        // Other maxima: their number changes from one spectrum to the next, so the list is the last
+        // thing on the screen (nothing below it can jump), and the top-5 view always has five rows.
+        val rr = frame?.fire
+        if (rr != null) {
+            Section(stringResource(if (s.fire.baseline == FireDetector.Baseline.GLOBAL_MEAN) R.string.fire_other_mean else R.string.fire_other_local)) {
+                val list = if (showAll) rr.otherMaxima else rr.otherMaxima.sortedByDescending { it.percentAboveFloor }.take(TOP_MAXIMA)
+                for (p in list) KeyValue("%.2f nm".format(Locale.US, p.wavelengthNm), stringResource(R.string.fire_other_value,
+                    "%.0f".format(Locale.US, p.intensity), "%.1f".format(Locale.US, p.percentAboveFloor)), live = true)
+                if (!showAll) repeat(TOP_MAXIMA - list.size) { KeyValue("—", "", live = true) }
+                ActionButton(onClick = { showAll = !showAll }, compact = true, enabled = showAll || rr.otherMaxima.size > TOP_MAXIMA) {
+                    Text(if (showAll) stringResource(R.string.fire_show_top5) else stringResource(R.string.fire_show_all, rr.otherMaxima.size))
+                }
+            }
+        }
     }
 }
 
+private const val TOP_MAXIMA = 5
+
 @Composable
 private fun WindowRow(name: String, w: FireDetector.WindowResult, thr: Double) {
+    // ▲ above the threshold, △ below: same width, so the row never re-wraps.
     val over = w.percentAboveFloor > thr
     KeyValue(name, stringResource(R.string.fire_window_value, "%.2f".format(Locale.US, w.wavelengthNm),
-        "%.0f".format(Locale.US, w.intensity), "%+.1f".format(Locale.US, w.percentAboveFloor)) + if (over) "  ▲" else "")
+        "%.0f".format(Locale.US, w.intensity), "%+.1f".format(Locale.US, w.percentAboveFloor)) + if (over) "  ▲" else "  △", live = true)
 }

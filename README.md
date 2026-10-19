@@ -12,7 +12,7 @@ implementation of fire detection with the Ocean Optics NIR microspectrometer, de
 in the [AF3 project (FP7-SEC)](https://rfsat.com/index.php/en/projects-and-activities/completed/af3-fp7-sec).
 On the phone, the app talks to the spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Limited. Version 1.6.0 (build 10600).
+RFSAT Limited. Version 1.7.0 (build 10700).
 
 ## Hardware
 
@@ -85,6 +85,82 @@ Each tool screen starts with a one-line summary and a **How to use ›** link th
 | Colour | CIE XYZ / L\*a\*b\* under D65 (2° observer, Wyman 2013 CMF fit), sRGB swatch, CIEDE2000 against a standard. With a unit covering only part of 380–780 nm (at least 40 nm, e.g. STS-NIR 636–780 nm) it runs in partial mode: it reports the covered range, the share of the eye's colour response it holds and the hues it can follow, extends the reflectance beyond the range with the nearest measured value, labels L\*a\*b\* as approximate, drops the swatch and is meant for ΔE monitoring against a standard measured on the same unit | `tools/Colorimetry.kt` |
 | Light source / LED | Peak, FWHM, centroid, xy, CCT (McCamy), PAR photon fraction; response correction from a lamp of known temperature; lux and PPFD after scaling to a lux meter | `tools/Quantitative.kt` |
 | Time series / kinetics | Absorbance, ratio or counts at one wavelength against time; first-order fit (k, half-life, R²); CSV export | `tools/Quantitative.kt` |
+| Sun photometer | Direct-sun aerosol optical depth at 440/500/675/870/1020 nm, Ångström exponent and precipitable water vapour (940 nm band, T = exp(−a(mW)^b)); Beer–Lambert–Bouguer with Rayleigh and ozone terms; solar position and Kasten–Young airmass from GPS and time; V₀ from known values or a Langley / modified-Langley plot | `tools/SunPhotometer.kt`, `tools/Solar.kt` |
+| UV index | Erythemal (CIE / ISO 17166) weighting of the solar UV, UV-B share; one scale factor against a reference UV index | `tools/UvIndex.kt` |
+| Lamp survey | Lamp technology from spectral fingerprints (Na D lines and self-reversal, Hg 436/546 nm, Eu 611 nm, LED blue pump, smooth thermal continuum), CCT, blue share, melanopic DER; GPS survey on the map | `tools/LampClassifier.kt` |
+| Plant fluorescence | Sun-induced chlorophyll fluorescence by three-band Fraunhofer line discrimination in the O2-A (760 nm) and O2-B (687 nm) bands | `tools/Fluorescence.kt` |
+| Water (UV) | Nitrate-N from A220 − 2·A275 (Standard Methods 4500-NO3⁻ B, calibratable), UV254 and SUVA | `tools/LabMethods.kt` |
+| Teach and predict | PLS1 regression (NIPALS) on log(1/R) with SNV / SNV + Savitzky–Golay derivative, components chosen by leave-one-out cross-validation (RMSECV, Q²); models in `files/predict/*.csv` | `tools/Chemometrics.kt` |
+| Raman | Wavelength → Raman shift, fluorescence removal by iterative polynomial (modpoly), peak picking, matching to 15 built-in materials and a user library with ±20 cm⁻¹ laser offset search | `tools/Raman.kt` |
+| Olive oil | K232, K264, K268, K272 and ΔK (Reg. (EEC) 2568/91 limits for extra virgin and virgin) | `tools/LabMethods.kt` |
+| Drink colour | Beer EBC = 25·A430, SRM = 12.7·A430 with the A700 clarity check; wine colour intensity and hue (OIV); honey mm Pfund = −38.70 + 371.39·A635 and USDA grade | `tools/LabMethods.kt` |
+| Temperature | Grey-body Planck fit (golden-section search on log T) to the response-corrected spectrum; on the Fire tool the flame continuum (fire minus median background) gives the flame temperature and flags sun glints | `tools/Pyrometry.kt` |
+| Film thickness | Fringe period in 1/λ by FFT (d = f / 2n), refined by a normal-incidence thin-film model on glass, silicon, water or metal | `tools/Optics.kt` |
+| Filters and eyewear | Luminous transmittance (D65) and ISO 12312-1 category, UV-A and 380–400 nm (UV400), blue 415–455 nm, 50 % cut-on, optical density with a noise-floor lower bound | `tools/Optics.kt` |
+| Health check | Dark level, read noise and hot pixels from 10 dark scans; linearity at ¼, ½ and full integration; Hg-Ar wavelength shift; shared text report | `tools/HealthCheck.kt` |
+| Test-kit reader | DPD chlorine (515 nm), molybdenum-blue phosphate (880 / 710 nm), indophenol ammonia (655 nm), Griess nitrite (540 nm), phenanthroline iron (510 nm) or a custom wavelength; typical response or one-standard calibration, range warning | `tools/LabMethods2.kt` |
+| pH by indicator | Two-wavelength ratio method: pH = pKa + log₁₀((R − e1)/(e2 − R·e3)) for bromocresol green, bromothymol blue, phenol red, m-cresol purple and thymol blue; end members measured or typical | `tools/LabMethods2.kt` |
+| Fluorimeter | Emission above the blank in the preset window (chlorophyll-a, phycocyanin, fluorescein, quinine, oil, UV security marks), counts/s, LED leakage, one-standard calibration | `tools/LabMethods2.kt` |
+| DNA and protein | A230/A260/A280 with A320 background correction; 50 / 40 / 33 µg/mL per A260 (dsDNA / RNA / ssDNA), protein A280 = 1 mg/mL; path and dilution | `tools/LabMethods2.kt` |
+| Growth curve | OD600 recorded at an interval; exponential phase found by a sliding window on ln OD (R² ≥ 0.97, steepest slope): µ, doubling time, lag, maximum OD | `tools/LabMethods2.kt` |
+| Physics lab | Discharge-tube identification against NIST lines (H, He, Ne, Hg, Na, Ar, Kr, Xe); Rydberg constant from the Balmer lines (air → vacuum); Planck's constant from LED wavelength and turn-on voltage | `tools/Identify.kt` |
+| Water colour | Forel-Ule index from the hue angle of the water-leaving reflectance (Novoa et al. 2013 transitions), R705/R665 chlorophyll ratio, phycocyanin trough at 620 nm, NIR reflectance; reflectance per second so water and panel can use different exposures | `tools/Identify.kt` |
+| Leaf chlorophyll clip | log₁₀(T940 or T780 / T650) × k (SPAD-like, k = 50 or from one SPAD reading), Markwell chlorophyll (µg/cm²) | `tools/LabMethods2.kt` |
+| Greenhouse light | PPFD from the calibrated spectrum, photon shares (UV-A, blue, green, red, far red), R:FR (655–665 / 725–735 nm), daily light integral logger | `tools/LabMethods2.kt` |
+| Ozone and NO₂ (experimental) | Total ozone from ln(I310/I330) with Rayleigh correction, L₀ from a known column or a Langley series; NO₂ slant column difference by DOAS (cubic high-pass, 425–490 nm) against a stored reference sun spectrum, with an imported cross-section file (synthetic cross-section only in the simulator) | `tools/LabMethods2.kt` |
+| Soil colour | CIE L\*a\*b\* (D65) matched by CIEDE2000 to the Munsell renotation data (soil-chart pages or all chips, neutral greys from ASTM D1535) | `tools/Identify.kt` |
+| Colour rendering | CCT and Duv (exact Planckian search), CIE 13.3 Ra and R1–R14 (TCS01–14), IES TM-30-18 / CIE 224 Rf, Rg and 16 hue-bin chroma shifts (99 CES, CAM02-UCS); CIE tables in `src/main/resources/data/`, checked against colour-science 0.4.7 | `tools/ColourQuality.kt` |
+| Display check | Chromaticity of white, red, green and blue patches (full-screen patches can be shown on the phone itself), gamut area against sRGB and coverage of sRGB, DCI-P3 and Rec.2020 in u′v′ (Sutherland–Hodgman clipping), white-point CCT | `tools/LabMethods2.kt` |
+| Pigment identification | FORS features (inflection points, minima, maxima, NIR, flat spectra) matched to 17 historical pigments; score = found × precision × explained share | `tools/Identify.kt` |
+| Gem tester | Absorption bands in transmittance (≥ 3 % deep) or fluorescence lines matched to diagnostic lines of 12 gems and imitations | `tools/Identify.kt` |
+| Light dose (melanopic) | Melanopic EDI and illuminance per second with auto-exposure over 2 ms–2 s (a dark per step); logger and day summary against Brown et al. 2022 (≥ 250 lx day, ≤ 10 lx evening, ≤ 1 lx sleep) | `tools/LabMethods2.kt`, `tools/ToolHub.kt` |
+| UV dose | Erythemal dose in SED from the UV index (1 UVI = 0.025 W/m²), share of the typical MED by Fitzpatrick type, time to it | `tools/LabMethods2.kt` |
+| Skin indices | Diffey erythema and melanin indices (560 / 650 nm), relative carotenoid index (480 nm against 440 / 520 nm), baseline and change, readings logged with a site label | `tools/LabMethods2.kt` |
+| Pulse | Photoplethysmogram from the red / NIR band through a fingertip: rate by autocorrelation, perfusion index, RMSSD, signal quality (no SpO₂) | `tools/LabMethods2.kt` |
+| Exposure diary | Daily CSV logs (`files/exposure/<kind>_YYYYMMDD.csv`) zipped with a README (participant code, app version, instrument), shared or POSTed to a study's https address | `data/ExposureLog.kt`, `ui/ToolScreensG.kt` |
+
+### Exposure and wellness tools (non-medical)
+
+Light dose, UV dose, skin indices, pulse and the exposure diary are for wellness, education and research.
+They open only after a one-time notice ("not a medical device and does not diagnose, treat, cure or
+prevent any medical condition"; consult a healthcare professional), and each screen repeats a short
+reminder. There is no blood-oxygen (SpO₂) measurement. Before publishing this version on Google Play:
+
+* complete the **Health apps declaration** (Play Console → App content) as a wellness / research app,
+  not a medical device;
+* add a **privacy policy URL** stating that measurements stay on the phone until the user shares or
+  uploads them, and that uploads go only to the address the user enters;
+* keep the external spectrometer named in the store description.
+
+For research use (for example ENACT exposome studies), the study team provides the participant code,
+the upload endpoint, informed consent and ethics approval. The upload is a plain HTTPS POST of the zip
+(`Content-Type: application/zip`, header `X-Participant`).
+
+### Application kits
+
+Chips at the top of the Tools tab group the tools for one job: food authenticity, plastics sorting,
+fake medicines, wildfire network, ENACT personal exposure, precision farming, water quality, cultural
+heritage and school lab (`Kit` in `ui/ToolScreensG.kt`).
+
+### Light calibration and auto-exposure
+
+From 1.8.0 the Light tool works in counts per second, so its lux scale holds at any integration time;
+**the lux scale must be set again after updating**. "Prepare darks" (Light dose, Greenhouse) records a
+dark for each exposure step (2 ms to 2 s) so the loggers can follow light from moonlight to sunlight.
+
+The Light tool also shows melanopic DER and EDI (CIE S 026, action spectrum rebuilt from the
+Govardovskii template and lens model; equal-energy ratio 0.904 vs 0.906, D65 efficacy 1.324 vs
+1.326 mW/lm) and the blue-light hazard efficacy (IEC 62471 B(λ)) (`tools/LightHealth.kt`).
+
+Phone extras: "Save to map" has a camera button that stores a photo with the result (shown on the
+Map card, files in `files/events/photos`); sample-name fields have a QR / barcode scanner (Google
+code scanner, no camera permission); and Setup → Fire-watch alerts posts a JSON message for every
+new confirmed fire to a web address (`core/AlertSender.kt`).
+
+The simulator has a scene for every new tool: direct sun and global UV skies with a virtual clock
+(including a fast morning for Langley plots), street lamps, glowing bodies, Raman spectra of the
+library materials, films, filters and eyewear, fruit with known sugar content, beers, wines, honeys,
+olive oils and waters, and for the 1.8.0 tools cultures, test kits, indicators, fluorescence, DNA, waters, leaves, gems, pigments, skin, a fingertip pulse, displays and a whole simulated day of personal light. `NewToolsTest` and `NewToolsTest2` check each tool against these scenes.
 
 Results saved with "Save to map", vegetation survey points and emission alarms go to
 `files/events/tool_events.csv` and appear on the Map as coloured dots (tap for details).
@@ -160,10 +236,11 @@ Screenshots of every screen (Robolectric + Roborazzi, simulator data, Galaxy S24
 |---|---|---|
 | `obp` | OBP message framing and STS commands | SeaBreeze `OBPMessage`, `OBPTransaction`, STS exchanges |
 | `usb` | Android USB host bulk transport | SeaBreeze `STSUSB` (first bulk IN/OUT pair) |
-| `core` | Acquisition engine (single device thread), spectrometer interface, alarm | Dev Kit daemon `Spectrometer`, `Sequence` |
+| `core` | Acquisition engine (single device thread), spectrometer interface, alarm, fire-watch alerts | Dev Kit daemon `Spectrometer`, `Sequence` |
 | `proc` | Calibration, processing, fire detector | Daemon + `af3-peaks.php` |
-| `data` | Settings, GPS, session logger, KML | `FileManager`, gpsd pages |
-| `sim` | Simulated STS-NIR | — |
+| `data` | Settings, GPS, session logger, KML, tool events, exposure logs | `FileManager`, gpsd pages |
+| `sim` | Simulated STS-NIR / VIS / UV with a scene for every tool | — |
+| `tools` | The measuring tools' science: colorimetry, colour rendering (CRI, TM-30), vegetation, emission lines, Beer–Lambert, kinetics, sun photometry, ozone and NO₂, UV index, lamp recognition, fluorescence, chemometrics (PLS), Raman, lab methods (test kits, pH, fluorimetry, DNA, growth), identification (Munsell, Forel-Ule, physics lab, gems, pigments), pyrometry, thin films, filters, exposure and physiology, health check | — |
 | `ui` | Compose screens | PHP pages |
 
 ## Store assets

@@ -7,6 +7,15 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH).
 
+## 1.8.0 (build 10800)
+20 new tools: test-kit reader, pH by indicator, fluorimeter, DNA and protein purity, growth curve, physics lab, water colour (Forel-Ule), leaf chlorophyll clip, greenhouse light, ozone and NO₂ (experimental), soil colour, colour rendering (CRI, TM-30), display check, pigments and gems; plus non-medical exposure tools for research (light dose, UV dose, skin, pulse, exposure diary) and application kits. Please recalibrate the Light tool's lux scale.
+
+## 1.7.0 (build 10700)
+13 new tools, grouped on the Tools tab: sun photometer (haze and water vapour), UV index, lamp survey, plant fluorescence, water nitrate, teach-and-predict calibration, Raman, olive-oil UV indices, drink colour, temperature, film thickness, filters and eyewear, and a spectrometer health check. Fire now shows flame temperature, Light adds melanopic values, results can carry a photo, sample names a QR code, and fires can alert a web address.
+
+## 1.6.1 (build 10601)
+Screens no longer jump while measuring. In the Fire tool the list of other maxima moved to the bottom with a fixed number of rows, and the alarm banner keeps the same height whatever the state. Live values in all tools now stay on one line, and results that come and go (fit, range warning, colour and light values) keep their place, so the controls stay where your finger expects them.
+
 ## 1.6.0 (build 10600)
 Every tool now explains itself: a one-line summary under the tool's name, and a "How to use" link that opens a short guide with what the tool measures, what it needs, the steps to follow and practical tips. Regular users keep an uncluttered screen; new users can learn each tool, also with the simulator, before buying a spectrometer.
 

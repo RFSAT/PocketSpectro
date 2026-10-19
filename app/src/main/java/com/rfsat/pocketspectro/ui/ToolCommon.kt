@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +44,7 @@ fun AcquisitionRow(engine: AcquisitionEngine) {
     }
 }
 
-enum class RefKind { WHITE, BLANK, DARK_ONLY }
+enum class RefKind { WHITE, BLANK, OPEN, DARK_ONLY }
 
 /** Dark and reference status with the buttons to store them (white tile, or blank cuvette). */
 @Composable
@@ -54,20 +56,21 @@ fun ReferencePanel(engine: AcquisitionEngine, kind: RefKind) {
         Text(stringResource(when (kind) {
             RefKind.WHITE -> R.string.ref_help_white
             RefKind.BLANK -> R.string.ref_help_blank
+            RefKind.OPEN -> R.string.ref_help_open
             RefKind.DARK_ONLY -> R.string.ref_help_dark
         }), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         KeyValue(stringResource(R.string.live_dark), stringResource(if (dark != null) R.string.ref_stored else R.string.ref_missing))
-        if (kind != RefKind.DARK_ONLY) KeyValue(stringResource(if (kind == RefKind.WHITE) R.string.ref_white else R.string.ref_blank),
+        if (kind != RefKind.DARK_ONLY) KeyValue(stringResource(when (kind) { RefKind.WHITE -> R.string.ref_white; RefKind.OPEN -> R.string.ref_open; else -> R.string.ref_blank }),
             stringResource(if (ref != null) R.string.ref_stored else R.string.ref_missing))
         @OptIn(ExperimentalLayoutApi::class)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (kind != RefKind.DARK_ONLY) ActionButton(onClick = { engine.captureDarkAndReference() }, emphasis = true, enabled = shutter) {
-                Text(stringResource(if (kind == RefKind.WHITE) R.string.ref_both_white else R.string.ref_both_blank))
+                Text(stringResource(when (kind) { RefKind.WHITE -> R.string.ref_both_white; RefKind.OPEN -> R.string.ref_both_open; else -> R.string.ref_both_blank }))
             }
             ActionButton(onClick = { engine.captureDark(useShutter = true) }) { Text(stringResource(R.string.live_dark_shutter)) }
             ActionButton(onClick = { engine.captureDark(useShutter = false) }) { Text(stringResource(R.string.live_store_dark)) }
             if (kind != RefKind.DARK_ONLY) ActionButton(onClick = { engine.captureReference() }, enabled = dark != null) {
-                Text(stringResource(if (kind == RefKind.WHITE) R.string.ref_store_white else R.string.ref_store_blank))
+                Text(stringResource(when (kind) { RefKind.WHITE -> R.string.ref_store_white; RefKind.OPEN -> R.string.ref_store_open; else -> R.string.ref_store_blank }))
             }
         }
     }
@@ -98,7 +101,8 @@ fun <T> ChipChoices(options: List<T>, selected: T?, label: @Composable (T) -> St
 fun BigValue(label: String, value: String, colour: Color = MaterialTheme.colorScheme.primary, size: TextUnit = 34.sp) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontSize = size, fontWeight = FontWeight.Bold, color = colour)
+        // One line, shrinking if needed: a longer result never pushes the screen down.
+        FitText(value, color = colour, fontWeight = FontWeight.Bold, fontSize = size)
     }
 }
 
@@ -107,14 +111,29 @@ fun BigValue(label: String, value: String, colour: Color = MaterialTheme.colorSc
 fun SaveResultButton(engine: AcquisitionEngine, tool: ToolId, label: String, value: Double, colour: String, detail: String, enabled: Boolean = true) {
     val fix by engine.location.fix.collectAsState()
     var saved by remember(label) { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    fun save(photo: String) {
+        val f = fix ?: return
+        val model = (engine.connection.value as? com.rfsat.pocketspectro.core.Connection.Ready)?.info?.model ?: ""
+        engine.tools.record(ToolEvent(System.currentTimeMillis(), f.latitude, f.longitude, f.accuracyM?.toDouble(),
+            tool.name, label, value, colour, detail, model, photo))
+        saved = true
+    }
+    // "With photo": the camera app takes the picture into events/photos, then the result is saved with it.
+    var pending by remember { mutableStateOf<java.io.File?>(null) }
+    val camera = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.TakePicture()) { ok ->
+        val file = pending; pending = null
+        if (ok && file != null && file.length() > 0) save(file.name) else file?.delete()
+    }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ActionButton(onClick = {
-            val f = fix ?: return@ActionButton
-            val model = (engine.connection.value as? com.rfsat.pocketspectro.core.Connection.Ready)?.info?.model ?: ""
-            engine.tools.record(ToolEvent(System.currentTimeMillis(), f.latitude, f.longitude, f.accuracyM?.toDouble(),
-                tool.name, label, value, colour, detail, model))
-            saved = true
-        }, enabled = enabled && fix != null) { Text(stringResource(R.string.tool_save_result)) }
+        ActionButton(onClick = { save("") }, enabled = enabled && fix != null) { Text(stringResource(R.string.tool_save_result)) }
+        androidx.compose.material3.OutlinedIconButton(onClick = {
+            val file = java.io.File(engine.toolEvents.photoDir, "photo_%tY%<tm%<td_%<tH%<tM%<tS.jpg".format(java.util.Date()))
+            pending = file
+            try { camera.launch(androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", file)) } catch (_: Exception) { pending = null }
+        }, enabled = enabled && fix != null, border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant)) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.PhotoCamera, stringResource(R.string.tool_save_photo))
+        }
         Text(stringResource(when {
             fix == null -> R.string.tool_save_no_gps
             saved -> R.string.tool_saved
@@ -124,3 +143,18 @@ fun SaveResultButton(engine: AcquisitionEngine, tool: ToolId, label: String, val
 }
 
 fun hex(rgb: IntArray) = "#%02X%02X%02X".format(rgb[0], rgb[1], rgb[2])
+
+/**
+ * Scans a QR code or barcode (sample label, batch number) with the Google code scanner and hands
+ * back its text; used as the trailing icon of sample-name fields.
+ */
+@Composable
+fun ScanButton(onResult: (String) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.material3.IconButton(onClick = {
+        try {
+            com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(context).startScan()
+                .addOnSuccessListener { b -> b.rawValue?.takeIf { it.isNotBlank() }?.let { onResult(it.trim().take(60)) } }
+        } catch (_: Exception) {}
+    }) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.QrCodeScanner, stringResource(R.string.scan_code)) }
+}

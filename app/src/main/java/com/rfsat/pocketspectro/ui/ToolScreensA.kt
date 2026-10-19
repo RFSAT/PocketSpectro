@@ -88,9 +88,9 @@ fun EmissionTool(engine: AcquisitionEngine) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("${m.line.label} ${f(m.line.nm, 1)}", Modifier.weight(0.30f), style = MaterialTheme.typography.bodySmall,
                         fontWeight = if (m.present) FontWeight.Bold else FontWeight.Normal)
-                    Text(stringResource(R.string.em_line_value, f(m.centroidNm, 1), "%+.1f".format(Locale.US, m.shiftNm),
+                    FitText(stringResource(R.string.em_line_value, f(m.centroidNm, 1), "%+.1f".format(Locale.US, m.shiftNm),
                         if (m.pctAbove.isInfinite()) "∞" else "%+.0f".format(Locale.US, m.pctAbove), f(m.snr, 0)),
-                        Modifier.weight(0.58f), style = MaterialTheme.typography.bodySmall)
+                        Modifier.weight(0.58f), MaterialTheme.typography.bodySmall)
                     Text(if (m.present) "●" else "○", Modifier.weight(0.12f), color = if (m.present) OnGreen else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -138,6 +138,21 @@ fun emitterLabel(e: SimEmitter): String = when (e) {
     SimEmitter.LED_IR_850 -> stringResource(R.string.sim_led_ir, "850")
     SimEmitter.LED_IR_940 -> stringResource(R.string.sim_led_ir, "940")
     SimEmitter.LAMP_2856K -> stringResource(R.string.sim_lamp_a)
+    SimEmitter.LAMP_LPS -> stringResource(R.string.lamp_lps)
+    SimEmitter.LAMP_HPS -> stringResource(R.string.lamp_hps)
+    SimEmitter.LAMP_MERCURY -> stringResource(R.string.lamp_mercury)
+    SimEmitter.LAMP_METAL_HALIDE -> stringResource(R.string.lamp_metal_halide)
+    SimEmitter.LAMP_FLUORESCENT -> stringResource(R.string.lamp_fluorescent)
+    SimEmitter.BODY_1100K -> stringResource(R.string.sim_body, "1100")
+    SimEmitter.BODY_1500K -> stringResource(R.string.sim_body, "1500")
+    SimEmitter.BODY_1900K -> stringResource(R.string.sim_body, "1900")
+    SimEmitter.H_TUBE -> stringResource(R.string.sim_tube, stringResource(R.string.el_hydrogen))
+    SimEmitter.HE_TUBE -> stringResource(R.string.sim_tube, stringResource(R.string.el_helium))
+    SimEmitter.NE_TUBE -> stringResource(R.string.sim_tube, stringResource(R.string.el_neon))
+    SimEmitter.LED_YELLOW -> stringResource(R.string.sim_led_colour, stringResource(R.string.colour_yellow))
+    SimEmitter.LED_UV -> stringResource(R.string.sim_led_uv)
+    SimEmitter.SUNLIGHT -> stringResource(R.string.sim_sunlight)
+    SimEmitter.CANOPY_SHADE -> stringResource(R.string.sim_canopy_shade)
 }
 
 // ================================= Vegetation ==============================================
@@ -166,11 +181,11 @@ fun VegetationTool(engine: AcquisitionEngine) {
             }
             Section(stringResource(R.string.veg_indices)) {
                 KeyValue("NDVI", stringResource(R.string.veg_ndvi_bands, f(r.ndvi), "%.0f–%.0f".format(Locale.US, r.redNm.start, r.redNm.endInclusive),
-                    "%.0f–%.0f".format(Locale.US, r.nirNm.start, r.nirNm.endInclusive)))
-                KeyValue(stringResource(R.string.veg_rep), r.rep?.let { "${f(it, 1)} nm" } ?: "—")
-                KeyValue(stringResource(R.string.veg_cire), f(r.cire))
-                KeyValue(stringResource(R.string.veg_wbi), f(r.wbi, 3))
-                KeyValue(stringResource(R.string.veg_pri), f(r.pri, 3))
+                    "%.0f–%.0f".format(Locale.US, r.nirNm.start, r.nirNm.endInclusive)), live = true)
+                KeyValue(stringResource(R.string.veg_rep), r.rep?.let { "${f(it, 1)} nm" } ?: "—", live = true)
+                KeyValue(stringResource(R.string.veg_cire), f(r.cire), live = true)
+                KeyValue(stringResource(R.string.veg_wbi), f(r.wbi, 3), live = true)
+                KeyValue(stringResource(R.string.veg_pri), f(r.pri, 3), live = true)
                 Text(stringResource(R.string.veg_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -186,7 +201,7 @@ fun VegetationTool(engine: AcquisitionEngine) {
                     { engine.tools.vegRecording(!st.recording); if (!st.recording) engine.setRunning(true) })
                 NumberField(stringResource(R.string.log_interval), st.intervalSec, { engine.tools.vegInterval(it) }, Modifier.weight(1f), 0, 1.0, 3600.0, "s")
             }
-            KeyValue(stringResource(R.string.veg_points), st.points.toString())
+            KeyValue(stringResource(R.string.veg_points), st.points.toString(), live = true)
             KeyValue(stringResource(R.string.log_gps), fix?.let { "%.5f, %.5f".format(Locale.US, it.latitude, it.longitude) } ?: stringResource(R.string.gps_waiting))
         }
         ReferencePanel(engine, RefKind.WHITE)
@@ -257,8 +272,9 @@ fun MatchTool(engine: AcquisitionEngine) {
             }
             SpectrumChart(fr.wavelengths, current, height = 220.dp,
                 yUnit = stringResource(if (refl != null) R.string.unit_reflectance else R.string.unit_counts), overlay = overlay)
-            if (overlay != null) Text(stringResource(R.string.match_overlay_legend, best.entry.name), Modifier.padding(horizontal = 16.dp),
-                style = MaterialTheme.typography.labelSmall, color = OverlayColor)
+            // Always one line (empty without a library), so the result below stays put.
+            FitText(if (overlay != null) stringResource(R.string.match_overlay_legend, best.entry.name) else "", Modifier.padding(horizontal = 16.dp),
+                MaterialTheme.typography.labelSmall, color = OverlayColor)
         }
         val verdict = when {
             library.none { it.quantity == quantity } -> stringResource(R.string.match_empty_library)
@@ -268,7 +284,7 @@ fun MatchTool(engine: AcquisitionEngine) {
         }
         BigValue(stringResource(R.string.match_result), verdict, colour = if (best != null && best.score >= thr) OnGreen else OffRed, size = 22.sp)
         if (matches.isNotEmpty()) Section(stringResource(R.string.match_candidates)) {
-            for (m in matches.take(5)) KeyValue(m.entry.name, "${f(m.score * 100, 1)} %")
+            for (m in matches.take(5)) KeyValue(m.entry.name, "${f(m.score * 100, 1)} %", live = true)
             NumberField(stringResource(R.string.match_threshold), thr * 100, { engine.tools.matchThreshold(it / 100) }, Modifier.fillMaxWidth(), 1, 50.0, 99.9, "%")
             Text(stringResource(R.string.match_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (best != null) SaveResultButton(engine, ToolId.MATCH, if (best.score >= thr) best.entry.name else "?",
@@ -278,7 +294,8 @@ fun MatchTool(engine: AcquisitionEngine) {
             Text(stringResource(if (refl != null) R.string.match_lib_help_refl else R.string.match_lib_help_counts),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.match_name)) }, singleLine = true, modifier = Modifier.weight(1f))
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.match_name)) }, singleLine = true, modifier = Modifier.weight(1f),
+                    trailingIcon = { ScanButton { name = it } })
                 ActionButton(onClick = {
                     val c = current ?: return@ActionButton
                     val frm = fr ?: return@ActionButton

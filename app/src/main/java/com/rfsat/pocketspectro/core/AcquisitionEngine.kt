@@ -140,17 +140,34 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
     val toolEvents by lazy { com.rfsat.pocketspectro.data.ToolEventJournal(filesRoot) }
     /** Background work of the tools (survey recording, line alarm, kinetics). */
     val tools by lazy {
-        com.rfsat.pocketspectro.tools.ToolHub(context, toolEvents) { on ->
+        com.rfsat.pocketspectro.tools.ToolHub(context, toolEvents, { on ->
             if (on) alarm.trigger(store.value.alarmSound, store.value.alarmVibrate) else if (!_fireArmed.value) alarm.stop()
-        }
+        }, { ms -> store.update { it.copy(integrationMs = ms) } }, com.rfsat.pocketspectro.data.ExposureLog(filesRoot))
     }
 
     /** Opens a tool (null = the list); with the simulator, shows that tool's demonstration scene. */
     fun openTool(t: com.rfsat.pocketspectro.tools.ToolId?) {
         tools.setActive(t)
         val sim = simulator ?: return
-        if (t != null) sim.scene = t.defaultScene(sim.model, System.currentTimeMillis())
+        if (t != null) sim.scene = t.defaultScene(sim.model, System.currentTimeMillis(), site().second)
     }
+
+    /** Where the sun tools are: the latest GPS fix, else the site entered in the Sun tool. */
+    fun site(): Pair<Double, Double> = tools.site(location.fix.value)
+
+    /** Time for sun geometry: the simulator's virtual sky clock when it shows a sun scene, else [frameMs]. */
+    fun solarTimeMs(frameMs: Long): Long = when (val sc = simulator?.scene) {
+        is com.rfsat.pocketspectro.sim.SimScene.Sun -> sc.clock.at(frameMs)
+        is com.rfsat.pocketspectro.sim.SimScene.SunUv -> sc.clock.at(frameMs)
+        is com.rfsat.pocketspectro.sim.SimScene.Day -> sc.clock.at(frameMs)
+        is com.rfsat.pocketspectro.sim.SimScene.Culture -> sc.startMs + ((frameMs - sc.startMs) * sc.speed).toLong()
+        else -> frameMs
+    }
+
+    @Volatile private var shutterRequest: Boolean? = null
+
+    /** Opens or closes the shutter between scans (health check); [shutterAvailable] reports whether it worked. */
+    fun requestShutter(open: Boolean) { shutterRequest = open }
 
     /** Simulator only: what the probe looks at. */
     fun setSimScene(scene: com.rfsat.pocketspectro.sim.SimScene) { simulator?.scene = scene }
@@ -313,6 +330,12 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
                 val s = store.value
                 syncDevice(dev, s)
                 val darkReq = darkRequest
+                shutterRequest?.let { open ->
+                    shutterRequest = null
+                    val ok = try { dev.setShutter(open) } catch (_: IOException) { false }
+                    if (!open) _shutterAvailable.value = ok
+                    if (ok) dev.acquire() // flush the scan integrated before the change
+                }
                 when {
                     darkReq != null -> { darkRequest = null; doCaptureDark(dev, s, darkReq) }
                     referenceRequest -> { referenceRequest = false; doCaptureReference(dev, s) }
@@ -391,6 +414,7 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
 
     private fun acquireFrame(dev: Spectrometer, s: AppSettings) {
         val info = dev.info
+        (dev as? SimulatedSpectrometer)?.let { sim -> val (la, lo) = site(); sim.siteLat = la; sim.siteLon = lo }
         val avg = averaged(dev, s.scansToAverage)
         val meanRaw = avg.mean()
         val wl = info.wavelengths()
@@ -426,6 +450,14 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
                 if (journal.record(System.currentTimeMillis(), fix, fire, logger?.dir?.name, risingEdge = !lastFireConfirmed, ctx = ctx) != null) {
                     _journalVersion.value++
                 }
+                // Fire-watch: one message per new fire (rising edge) to the configured web address.
+                if (!lastFireConfirmed && s.alertUrl.isNotBlank()) {
+                    AlertSender.send(s.alertUrl, AlertSender.Alert("fire", System.currentTimeMillis(), fix?.latitude, fix?.longitude,
+                        fix?.accuracyM?.toDouble(), fire.confidence.score, fire.maxPercent, tools.fireTemp.value.result?.kelvin,
+                        info.model, info.serial, info.simulated)) { code ->
+                        if (code !in 200..299) _messages.tryEmit(context.getString(R.string.alert_failed, code.toString()))
+                    }
+                }
             } catch (e: IOException) {
                 _messages.tryEmit(context.getString(R.string.msg_record_failed, e.message ?: e.javaClass.simpleName))
             }
@@ -440,7 +472,9 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
             maxRaw = avg.maxRaw, saturated = avg.maxRaw >= info.maxCounts, scans = avg.count,
             integrationUs = s.integrationUs, fire = fire, fireConfirmed = confirmed, reference = ref,
         )
-        _frame.value?.let { fr -> tools.onFrame(fr, if (s.gpsTagging) location.current() else null, info) }
+        _frame.value?.let { fr ->
+            tools.onFrame(fr, if (s.gpsTagging) location.current() else null, info, solarTimeMs(fr.timeMs), site(), location.fix.value != null)
+        }
 
         logIfDue(now, s, wl, counts, avg.count, dark != null, nlApplied, fire, confirmed)
     }
@@ -466,6 +500,17 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
         }
         _log.value = st.copy(spectra = lg.spectraWritten, detections = lg.detectionsWritten)
         if (st.max > 0 && lg.spectraWritten >= st.max) stopLogInternal()
+    }
+
+    /** Sends a test message to the fire-watch web address and reports the result. */
+    fun sendTestAlert() {
+        val url = store.value.alertUrl
+        val info = (connection.value as? Connection.Ready)?.info
+        val fix = location.fix.value
+        AlertSender.send(url, AlertSender.Alert("test", System.currentTimeMillis(), fix?.latitude, fix?.longitude, fix?.accuracyM?.toDouble(),
+            null, null, null, info?.model ?: "", info?.serial ?: "", info?.simulated ?: false)) { code ->
+            _messages.tryEmit(if (code in 200..299) context.getString(R.string.alert_test_ok, code.toString()) else context.getString(R.string.alert_failed, code.toString()))
+        }
     }
 
     /** Applies the settings the Pi's Detect page used, as the daemon actually ran them. */

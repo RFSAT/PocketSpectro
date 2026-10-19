@@ -4,4 +4,7 @@
     <external-files-path name="events" path="events/" />
     <files-path name="sessions_internal" path="sessions/" />
     <files-path name="events_internal" path="events/" />
+    <external-files-path name="exposure" path="exposure/" />
+    <files-path name="exposure_internal" path="exposure/" />
+    <cache-path name="exports" path="exports/" />
 </paths>

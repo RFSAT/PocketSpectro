@@ -4,7 +4,7 @@ plugins {
 }
 
 // The one place to change the app version.
-val appVersion = "1.6.0"
+val appVersion = "1.8.0"
 val appVersionCode = appVersion.split(".").map { it.toInt() }.let { (a, b, c) -> a * 10000 + b * 100 + c }
 
 android {
@@ -98,6 +98,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     // Same map engine as DBM's navigation screen.
     implementation("org.maplibre.gl:android-sdk:13.0.0")
+    // QR / barcode sample IDs through Google Play services (no camera permission needed).
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    // The code scanner pulls in Fragment 1.0; ActivityResult APIs need 1.3 or newer.
+    implementation("androidx.fragment:fragment:1.8.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.16.1")

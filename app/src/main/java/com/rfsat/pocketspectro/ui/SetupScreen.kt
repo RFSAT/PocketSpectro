@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -77,6 +78,15 @@ fun SetupScreen(engine: AcquisitionEngine, onReconnect: () -> Unit) {
             SwitchRow(stringResource(R.string.set_nl), s.applyNonlinearity, { v -> engine.store.update { it.copy(applyNonlinearity = v) } },
                 detail = stringResource(R.string.set_nl_detail))
             SwitchRow(stringResource(R.string.set_screen_on), s.keepScreenOn, { v -> engine.store.update { it.copy(keepScreenOn = v) } })
+        }
+
+        if (info == null || info.fireCapable) Section(stringResource(R.string.alert_title)) {
+            Text(stringResource(R.string.alert_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            var url by androidx.compose.runtime.remember(s.alertUrl) { androidx.compose.runtime.mutableStateOf(s.alertUrl) }
+            androidx.compose.material3.OutlinedTextField(url, { v -> url = v.trim(); engine.store.update { it.copy(alertUrl = v.trim()) } }, singleLine = true,
+                label = { Text(stringResource(R.string.alert_url)) }, modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri))
+            ActionButton(onClick = { engine.sendTestAlert() }, enabled = s.alertUrl.startsWith("http")) { Text(stringResource(R.string.alert_test)) }
         }
 
         if (info == null || info.fireCapable) Section(stringResource(R.string.home_btn_fire)) {

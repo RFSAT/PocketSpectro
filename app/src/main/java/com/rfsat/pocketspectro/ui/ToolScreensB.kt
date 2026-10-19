@@ -79,8 +79,11 @@ fun ConcentrationTool(engine: AcquisitionEngine) {
                 if (cal != null) BigValue(stringResource(R.string.conc_result), "${f(conc, 2)} ${st.units}",
                     colour = if (inRange) OnGreen else WarnAmber, size = 26.sp)
             }
-            if (cal != null && !inRange && conc.isFinite()) Text(stringResource(R.string.conc_out_of_range), Modifier.padding(horizontal = 16.dp),
-                style = MaterialTheme.typography.bodySmall, color = WarnAmber)
+            // Space kept while calibrated, so the note coming and going near the range limits moves nothing.
+            if (cal != null) Reserve(!inRange && conc.isFinite()) {
+                Text(stringResource(R.string.conc_out_of_range), Modifier.padding(horizontal = 16.dp),
+                    style = MaterialTheme.typography.bodySmall, color = WarnAmber)
+            }
         }
         Section(stringResource(R.string.conc_method)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -110,7 +113,7 @@ fun ConcentrationTool(engine: AcquisitionEngine) {
             }
             if (cal != null) {
                 KeyValue(stringResource(R.string.conc_fit), stringResource(R.string.conc_fit_value, "%.4g".format(Locale.US, cal.fit.slope),
-                    "%.4f".format(Locale.US, cal.fit.intercept), "%.4f".format(Locale.US, cal.fit.r2)))
+                    "%.4f".format(Locale.US, cal.fit.intercept), "%.4f".format(Locale.US, cal.fit.r2)), live = true)
                 val pts = st.standards.sortedBy { it.concentration }
                 val xs = pts.map { it.concentration }.toDoubleArray()
                 SpectrumChart(xs, pts.map { it.absorbance }.toDoubleArray(), height = 150.dp, yUnit = "A", dots = true,
@@ -120,10 +123,11 @@ fun ConcentrationTool(engine: AcquisitionEngine) {
                 Text(stringResource(R.string.conc_clear_standards))
             }
         }
-        if (cal != null && conc.isFinite()) Section(stringResource(R.string.conc_sample)) {
-            OutlinedTextField(sampleName, { sampleName = it }, singleLine = true, label = { Text(stringResource(R.string.conc_sample_name)) }, modifier = Modifier.fillMaxWidth())
+        if (cal != null) Section(stringResource(R.string.conc_sample)) {
+            OutlinedTextField(sampleName, { sampleName = it }, singleLine = true, label = { Text(stringResource(R.string.conc_sample_name)) }, modifier = Modifier.fillMaxWidth(),
+                trailingIcon = { ScanButton { sampleName = it } })
             SaveResultButton(engine, ToolId.CONCENTRATION, "${sampleName.ifBlank { "Sample" }}: ${f(conc, 2)} ${st.units}", conc, "#1565C0",
-                "A %.3f at %.0f nm; R² %.4f".format(Locale.US, a, st.nm, cal.fit.r2))
+                "A %.3f at %.0f nm; R² %.4f".format(Locale.US, a, st.nm, cal.fit.r2), enabled = conc.isFinite())
         }
         ReferencePanel(engine, RefKind.BLANK)
         SimPanel(engine) {
@@ -179,10 +183,13 @@ fun ColourTool(engine: AcquisitionEngine) {
                 // No swatch from a partial range: the missing part of the spectrum would make it a guess.
                 if (!partial) { Swatch(Color(rgb[0], rgb[1], rgb[2]), 72); Spacer(Modifier.width(14.dp)) }
                 Column {
-                    Text((if (partial) "≈ " else "") + "L* ${f(lab.l, 1)}   a* ${f(lab.a, 1)}   b* ${f(lab.b, 1)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(stringResource(R.string.colour_chroma_hue, f(lab.chroma, 1), f(lab.hueDeg, 0)), style = MaterialTheme.typography.bodySmall)
-                    if (!partial) Text("X ${f(xyz.x, 1)}  Y ${f(xyz.y, 1)}  Z ${f(xyz.z, 1)}  ·  x ${f(xyz.chromaticity.first, 4)}  y ${f(xyz.chromaticity.second, 4)}",
-                        style = MaterialTheme.typography.bodySmall)
+                    // Every live line is a single line, so changing digits or signs never re-wrap them.
+                    FitText((if (partial) "≈ " else "") + "L* ${f(lab.l, 1)}   a* ${f(lab.a, 1)}   b* ${f(lab.b, 1)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    FitText(stringResource(R.string.colour_chroma_hue, f(lab.chroma, 1), f(lab.hueDeg, 0)), style = MaterialTheme.typography.bodySmall)
+                    if (!partial) {
+                        FitText("X ${f(xyz.x, 1)}  Y ${f(xyz.y, 1)}  Z ${f(xyz.z, 1)}", style = MaterialTheme.typography.bodySmall)
+                        FitText("x ${f(xyz.chromaticity.first, 4)}  y ${f(xyz.chromaticity.second, 4)}", style = MaterialTheme.typography.bodySmall)
+                    }
                     Text((if (partial) "" else hex(rgb) + "  ·  ") + stringResource(R.string.colour_conditions), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -231,26 +238,40 @@ fun LightTool(engine: AcquisitionEngine) {
     var knownLux by remember { mutableDoubleStateOf(500.0) }
     val fr = frame
     val resp = st.response?.takeIf { fr != null && it.size == fr.counts.size }
-    val spd = fr?.let { LightMetrics.corrected(it.counts, resp) }
+    // Per second (with the matching dark of each exposure step when prepared), so the lux scale holds at any integration time.
+    val spd = fr?.let { engine.tools.spdPerSecond(it) }
     val r = if (fr != null && spd != null) LightMetrics.analyse(fr.wavelengths, spd) else null
+    // Which rows exist is decided by the wavelength range, so they do not come and go with noise.
+    val visible = fr != null && Colorimetry.supported(fr.wavelengths)
+    val parCovered = fr != null && com.rfsat.pocketspectro.tools.Spectra.covers(fr.wavelengths, 400.0, 700.0)
 
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
         AcquisitionRow(engine)
         if (fr != null && spd != null) SpectrumChart(fr.wavelengths, spd, height = 210.dp,
-            yUnit = stringResource(if (resp != null) R.string.unit_relative else R.string.unit_counts))
+            yUnit = stringResource(if (resp != null) R.string.unit_relative else R.string.unit_counts_per_s))
         if (r != null) {
             Row {
                 BigValue(stringResource(R.string.light_peak), r.peak?.let { "${f(it.nm, 1)} nm" } ?: "—", size = 24.sp)
-                r.cct?.let { BigValue(stringResource(R.string.light_cct), "${f(it, 0)} K", size = 24.sp) }
+                if (visible) BigValue(stringResource(R.string.light_cct), r.cct?.let { "${f(it, 0)} K" } ?: "—", size = 24.sp)
             }
             Section(stringResource(R.string.light_metrics)) {
-                KeyValue(stringResource(R.string.light_fwhm), r.peak?.fwhmNm?.let { "${f(it, 1)} nm" } ?: "—")
-                KeyValue(stringResource(R.string.light_centroid), r.peak?.centroidNm?.let { "${f(it, 1)} nm" } ?: "—")
-                r.xy?.let { KeyValue(stringResource(R.string.light_xy), "x ${f(it.first, 4)}  y ${f(it.second, 4)}") }
-                r.parFraction?.let { KeyValue(stringResource(R.string.light_par), "${f(it * 100, 1)} %") }
-                if (st.luxScale != null && r.relLux != null) {
-                    KeyValue(stringResource(R.string.light_lux), "${f(r.relLux * st.luxScale!!, 0)} lx")
-                    r.relPpfd?.let { KeyValue(stringResource(R.string.light_ppfd), "${f(it * st.luxScale!!, 1)} µmol/m²/s") }
+                // Rows depend on the unit's range and the calibration, not on each spectrum; values stay on one line.
+                KeyValue(stringResource(R.string.light_fwhm), r.peak?.fwhmNm?.let { "${f(it, 1)} nm" } ?: "—", live = true)
+                KeyValue(stringResource(R.string.light_centroid), r.peak?.centroidNm?.let { "${f(it, 1)} nm" } ?: "—", live = true)
+                if (visible) KeyValue(stringResource(R.string.light_xy), r.xy?.let { "x ${f(it.first, 4)}  y ${f(it.second, 4)}" } ?: "—", live = true)
+                if (parCovered) KeyValue(stringResource(R.string.light_par), r.parFraction?.let { "${f(it * 100, 1)} %" } ?: "—", live = true)
+                if (st.luxScale != null) {
+                    KeyValue(stringResource(R.string.light_lux), r.relLux?.let { "${f(it * st.luxScale!!, 0)} lx" } ?: "—", live = true)
+                    if (parCovered) KeyValue(stringResource(R.string.light_ppfd), r.relPpfd?.let { "${f(it * st.luxScale!!, 1)} µmol/m²/s" } ?: "—", live = true)
+                }
+                // Light and health (needs the visible range): melanopic and blue-light hazard figures.
+                if (visible) {
+                    val lh = remember(spd) { com.rfsat.pocketspectro.tools.LightHealth.analyse(fr!!.wavelengths, spd!!) }
+                    KeyValue(stringResource(R.string.lh_mel_der), f(lh?.melanopicDer, 3), live = true)
+                    KeyValue(stringResource(R.string.lh_mel_edi), if (st.luxScale != null && r.relLux != null && lh != null)
+                        "${f(r.relLux * st.luxScale!! * lh.melanopicDer, 0)} lx" else stringResource(R.string.lh_needs_scale), live = true)
+                    KeyValue(stringResource(R.string.lh_blh), lh?.let { "${f(it.blueHazardElr, 3)} mW/lm" } ?: "—", live = true)
+                    KeyValue(stringResource(R.string.lamp_blue), lh?.let { "${f(it.bluePercent, 1)} %" } ?: "—", live = true)
                 }
                 Text(stringResource(if (resp != null) R.string.light_corrected else R.string.light_uncorrected),
                     style = MaterialTheme.typography.bodySmall, color = if (resp != null) OnGreen else WarnAmber)
@@ -267,8 +288,9 @@ fun LightTool(engine: AcquisitionEngine) {
                 ActionButton(onClick = {
                     val frm = fr ?: return@ActionButton
                     engine.tools.lightUpdate { it.copy(response = LightMetrics.responseFromLamp(frm.wavelengths, frm.counts, it.lampKelvin)) }
-                }, enabled = fr != null && fr.darkCorrected, emphasis = true) { Text(stringResource(R.string.light_use_lamp)) }
+                }, enabled = fr != null && fr.darkCorrected && !fr.saturated, emphasis = true) { Text(stringResource(R.string.light_use_lamp)) }
             }
+            if (fr?.saturated == true) Text(stringResource(R.string.lamp_cal_saturated), style = MaterialTheme.typography.bodySmall, color = OffRed)
             if (resp != null) ActionButton(onClick = { engine.tools.lightUpdate { it.copy(response = null) } }, compact = true) { Text(stringResource(R.string.light_clear_cal)) }
             Text(stringResource(R.string.light_lux_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -314,7 +336,7 @@ fun KineticsTool(engine: AcquisitionEngine) {
                 ToolHub.KQuantity.COUNTS -> R.string.mode_counts
             }) }) { q -> engine.tools.kineticsSetup(q, st.nm) }
             NumberField(stringResource(R.string.conc_wavelength), st.nm, { v -> engine.tools.kineticsSetup(st.quantity, v) }, Modifier.fillMaxWidth(), 1, 150.0, 2600.0, "nm")
-            KeyValue(stringResource(R.string.kin_now), current?.let { "${f(it, 4)} $unit" } ?: stringResource(R.string.kin_needs_ref))
+            KeyValue(stringResource(R.string.kin_now), current?.let { "${f(it, 4)} $unit" } ?: stringResource(R.string.kin_needs_ref), live = true)
         }
         Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ToggleButton(st.recording, stringResource(if (st.recording) R.string.kin_recording_on else R.string.kin_recording_off),
@@ -329,14 +351,13 @@ fun KineticsTool(engine: AcquisitionEngine) {
             Text(stringResource(R.string.kin_time_axis), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall)
         }
         Section(stringResource(R.string.kin_analysis)) {
-            KeyValue(stringResource(R.string.kin_points), st.points.size.toString())
-            KeyValue(stringResource(R.string.kin_duration), st.points.lastOrNull()?.let { "${f(it.tSec, 0)} s" } ?: "—")
-            KeyValue(stringResource(R.string.kin_initial_rate), Kinetics.initialRate(st.points)?.let { "${"%.3g".format(Locale.US, it)} $unit/s" } ?: "—")
-            if (fit != null) {
-                KeyValue(stringResource(R.string.kin_k), "${"%.4g".format(Locale.US, fit.k)} 1/s")
-                KeyValue(stringResource(R.string.kin_half_life), "${f(fit.halfLifeSec, 1)} s")
-                KeyValue("R²", f(fit.r2, 4))
-            }
+            KeyValue(stringResource(R.string.kin_points), st.points.size.toString(), live = true)
+            KeyValue(stringResource(R.string.kin_duration), st.points.lastOrNull()?.let { "${f(it.tSec, 0)} s" } ?: "—", live = true)
+            KeyValue(stringResource(R.string.kin_initial_rate), Kinetics.initialRate(st.points)?.let { "${"%.3g".format(Locale.US, it)} $unit/s" } ?: "—", live = true)
+            // Fit rows are always there ("—" until a fit exists), so they do not appear and vanish as points arrive.
+            KeyValue(stringResource(R.string.kin_k), fit?.let { "${"%.4g".format(Locale.US, it.k)} 1/s" } ?: "—", live = true)
+            KeyValue(stringResource(R.string.kin_half_life), fit?.let { "${f(it.halfLifeSec, 1)} s" } ?: "—", live = true)
+            KeyValue("R²", f(fit?.r2, 4), live = true)
             Text(stringResource(R.string.kin_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         ReferencePanel(engine, RefKind.BLANK)

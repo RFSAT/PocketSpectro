@@ -61,15 +61,19 @@ fun LiveScreen(engine: AcquisitionEngine) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        // Chips that change with every spectrum sit on their own row: a longer peak value or SATURATED
+        // can never re-flow the chips below onto another line.
+        if (f != null) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            AssistChip(onClick = {}, label = { FitText("%.1f ms × %d".format(Locale.US, f.integrationUs / 1000.0, f.scans)) })
+            AssistChip(
+                onClick = {},
+                label = { FitText(if (f.saturated) stringResource(R.string.live_saturated) else stringResource(R.string.live_peak, f.maxRaw)) },
+                colors = if (f.saturated) AssistChipDefaults.assistChipColors(containerColor = FireRed.copy(alpha = 0.25f))
+                else AssistChipDefaults.assistChipColors(),
+            )
+        }
         FlowRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             if (f != null) {
-                AssistChip(onClick = {}, label = { Text("%.1f ms × %d".format(Locale.US, f.integrationUs / 1000.0, f.scans)) })
-                AssistChip(
-                    onClick = {},
-                    label = { Text(if (f.saturated) stringResource(R.string.live_saturated) else stringResource(R.string.live_peak, f.maxRaw)) },
-                    colors = if (f.saturated) AssistChipDefaults.assistChipColors(containerColor = FireRed.copy(alpha = 0.25f))
-                    else AssistChipDefaults.assistChipColors(),
-                )
                 if (f.needsReference) AssistChip(onClick = {}, label = { Text(stringResource(R.string.live_needs_ref)) },
                     colors = AssistChipDefaults.assistChipColors(containerColor = WarnAmber.copy(alpha = 0.25f)))
                 if (f.nlCorrected) AssistChip(onClick = {}, label = { Text(stringResource(R.string.live_nl_corrected)) })

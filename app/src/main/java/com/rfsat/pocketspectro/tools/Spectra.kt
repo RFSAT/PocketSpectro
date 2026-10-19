@@ -121,4 +121,62 @@ object Spectra {
     }
 
     fun clamp01(v: Double) = min(1.0, max(0.0, v))
+
+    /** Weighted least-squares polynomial (x should be scaled to about −1..1). Coefficients low to high. */
+    fun polyFit(x: DoubleArray, y: DoubleArray, degree: Int, w: DoubleArray? = null): DoubleArray? {
+        val k = degree + 1
+        val a = Array(k) { DoubleArray(k) }; val b = DoubleArray(k)
+        for (i in x.indices) {
+            if (!y[i].isFinite()) continue
+            val wi = w?.get(i) ?: 1.0
+            val pw = DoubleArray(2 * k - 1); pw[0] = 1.0
+            for (p in 1 until pw.size) pw[p] = pw[p - 1] * x[i]
+            for (r in 0 until k) { b[r] += wi * pw[r] * y[i]; for (c in 0 until k) a[r][c] += wi * pw[r + c] }
+        }
+        return solveLinear(a, b)
+    }
+
+    fun polyVal(c: DoubleArray, x: Double): Double { var s = 0.0; for (i in c.indices.reversed()) s = s * x + c[i]; return s }
+
+    /** Gaussian elimination with partial pivoting; null when singular. */
+    fun solveLinear(a0: Array<DoubleArray>, b0: DoubleArray): DoubleArray? {
+        val n = b0.size
+        val a = Array(n) { a0[it].copyOf() }; val b = b0.copyOf()
+        for (c in 0 until n) {
+            var piv = c
+            for (r in c + 1 until n) if (abs(a[r][c]) > abs(a[piv][c])) piv = r
+            if (abs(a[piv][c]) < 1e-300) return null
+            val tr = a[c]; a[c] = a[piv]; a[piv] = tr
+            val tb = b[c]; b[c] = b[piv]; b[piv] = tb
+            for (r in 0 until n) if (r != c) {
+                val f = a[r][c] / a[c][c]
+                if (f == 0.0) continue
+                for (q in c until n) a[r][q] -= f * a[c][q]
+                b[r] -= f * b[c]
+            }
+        }
+        return DoubleArray(n) { b[it] / a[it][it] }
+    }
+
+    /** Median of the finite values. */
+    fun median(v: DoubleArray): Double {
+        val s = v.filter { it.isFinite() }.sorted()
+        if (s.isEmpty()) return Double.NaN
+        return if (s.size % 2 == 1) s[s.size / 2] else (s[s.size / 2 - 1] + s[s.size / 2]) / 2
+    }
+
+    /** Robust noise of a spectrum: 1.4826 × MAD of the first difference / √2. */
+    fun noise(y: DoubleArray): Double {
+        if (y.size < 3) return Double.NaN
+        val d = DoubleArray(y.size - 1) { y[it + 1] - y[it] }
+        val m = median(d)
+        return 1.4826 * median(DoubleArray(d.size) { abs(d[it] - m) }) / sqrt(2.0)
+    }
+
+    /** Moving average over 2·[h]+1 points. */
+    fun smooth(y: DoubleArray, h: Int): DoubleArray = if (h <= 0) y.copyOf() else DoubleArray(y.size) { i ->
+        var s = 0.0; var n = 0
+        for (k in i - h..i + h) if (k in y.indices && y[k].isFinite()) { s += y[k]; n++ }
+        if (n > 0) s / n else Double.NaN
+    }
 }

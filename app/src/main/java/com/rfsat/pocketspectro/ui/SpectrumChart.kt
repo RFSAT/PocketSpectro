@@ -57,6 +57,8 @@ fun SpectrumChart(
     overlay: Pair<DoubleArray, DoubleArray>? = null,
     /** Draw the main trace as dots instead of a line (calibration points, time series). */
     dots: Boolean = false,
+    /** Fixed y axis (otherwise scaled to the visible data). */
+    yRange: ClosedFloatingPointRange<Double>? = null,
 ) {
     val dark = isSystemInDarkTheme()
     val trace = if (dark) TraceColorDark else TraceColor
@@ -123,6 +125,7 @@ fun SpectrumChart(
         if (hi - lo < 1e-9) { hi += 0.5; lo -= 0.5 }
         val pad = (hi - lo) * 0.05
         lo -= pad; hi += pad
+        if (yRange != null) { lo = yRange.start; hi = yRange.endInclusive }
 
         fun px(v: Double) = left + ((v - xMin) / (xMax - xMin) * plotW).toFloat()
         fun py(v: Double) = 8f + ((hi - v) / (hi - lo) * plotH).toFloat()

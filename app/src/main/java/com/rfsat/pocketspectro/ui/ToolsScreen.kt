@@ -26,6 +26,39 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.BeachAccess
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Grass
+import androidx.compose.material.icons.filled.Water
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Biotech
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.LocalBar
+import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material.icons.filled.Waves
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Colorize
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Polymer
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Brush
+import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.WbTwilight
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Functions
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -67,6 +100,39 @@ val ToolId.icon: ImageVector get() = when (this) {
     ToolId.COLOUR -> Icons.Filled.ColorLens
     ToolId.LIGHT -> Icons.Filled.Lightbulb
     ToolId.KINETICS -> Icons.Filled.Timeline
+    ToolId.SUN -> Icons.Filled.WbSunny
+    ToolId.UV_INDEX -> Icons.Filled.BeachAccess
+    ToolId.LAMPS -> Icons.Filled.NightsStay
+    ToolId.FLUORESCENCE -> Icons.Filled.Grass
+    ToolId.WATER -> Icons.Filled.Water
+    ToolId.PREDICT -> Icons.Filled.School
+    ToolId.RAMAN -> Icons.Filled.Biotech
+    ToolId.OLIVE -> Icons.Filled.Opacity
+    ToolId.DRINKS -> Icons.Filled.LocalBar
+    ToolId.TEMPERATURE -> Icons.Filled.Thermostat
+    ToolId.FILM -> Icons.Filled.Layers
+    ToolId.FILTER -> Icons.Filled.Visibility
+    ToolId.HEALTH -> Icons.Filled.Build
+    ToolId.GAS_COLUMNS -> Icons.Filled.Cloud
+    ToolId.LEAF_CLIP -> Icons.Filled.Spa
+    ToolId.GREENHOUSE -> Icons.Filled.Yard
+    ToolId.WATER_COLOUR -> Icons.Filled.Waves
+    ToolId.SOIL -> Icons.Filled.Landscape
+    ToolId.TEST_KIT -> Icons.Filled.Science
+    ToolId.PH -> Icons.Filled.Colorize
+    ToolId.FLUORIMETER -> Icons.Filled.FlashOn
+    ToolId.NUCLEIC -> Icons.Filled.Polymer
+    ToolId.GROWTH -> Icons.AutoMirrored.Filled.TrendingUp
+    ToolId.CRI -> Icons.Filled.Palette
+    ToolId.DISPLAY -> Icons.Filled.PhoneAndroid
+    ToolId.PIGMENT -> Icons.Filled.Brush
+    ToolId.GEM -> Icons.Filled.Diamond
+    ToolId.LIGHT_DOSE -> Icons.Filled.Bedtime
+    ToolId.UV_DOSE -> Icons.Filled.WbTwilight
+    ToolId.SKIN -> Icons.Filled.Face
+    ToolId.PULSE -> Icons.Filled.MonitorHeart
+    ToolId.DIARY -> Icons.Filled.CalendarMonth
+    ToolId.PHYSICS -> Icons.Filled.Functions
 }
 
 val ToolId.titleRes: Int get() = when (this) {
@@ -78,6 +144,39 @@ val ToolId.titleRes: Int get() = when (this) {
     ToolId.COLOUR -> R.string.tool_colour
     ToolId.LIGHT -> R.string.tool_light
     ToolId.KINETICS -> R.string.tool_kinetics
+    ToolId.SUN -> R.string.tool_sun
+    ToolId.UV_INDEX -> R.string.tool_uvi
+    ToolId.LAMPS -> R.string.tool_lamps
+    ToolId.FLUORESCENCE -> R.string.tool_sif
+    ToolId.WATER -> R.string.tool_water
+    ToolId.PREDICT -> R.string.tool_predict
+    ToolId.RAMAN -> R.string.tool_raman
+    ToolId.OLIVE -> R.string.tool_olive
+    ToolId.DRINKS -> R.string.tool_drinks
+    ToolId.TEMPERATURE -> R.string.tool_temperature
+    ToolId.FILM -> R.string.tool_film
+    ToolId.FILTER -> R.string.tool_filter
+    ToolId.HEALTH -> R.string.tool_health
+    ToolId.GAS_COLUMNS -> R.string.tool_gas
+    ToolId.LEAF_CLIP -> R.string.tool_leaf
+    ToolId.GREENHOUSE -> R.string.tool_greenhouse
+    ToolId.WATER_COLOUR -> R.string.tool_watercolour
+    ToolId.SOIL -> R.string.tool_soil
+    ToolId.TEST_KIT -> R.string.tool_kit
+    ToolId.PH -> R.string.tool_ph
+    ToolId.FLUORIMETER -> R.string.tool_fluorimeter
+    ToolId.NUCLEIC -> R.string.tool_nucleic
+    ToolId.GROWTH -> R.string.tool_growth
+    ToolId.CRI -> R.string.tool_cri
+    ToolId.DISPLAY -> R.string.tool_display
+    ToolId.PIGMENT -> R.string.tool_pigment
+    ToolId.GEM -> R.string.tool_gem
+    ToolId.LIGHT_DOSE -> R.string.tool_lightdose
+    ToolId.UV_DOSE -> R.string.tool_uvdose
+    ToolId.SKIN -> R.string.tool_skin
+    ToolId.PULSE -> R.string.tool_pulse
+    ToolId.DIARY -> R.string.tool_diary
+    ToolId.PHYSICS -> R.string.tool_physics
 }
 
 private val ToolId.summaryRes: Int get() = when (this) {
@@ -89,6 +188,39 @@ private val ToolId.summaryRes: Int get() = when (this) {
     ToolId.COLOUR -> R.string.tool_colour_summary
     ToolId.LIGHT -> R.string.tool_light_summary
     ToolId.KINETICS -> R.string.tool_kinetics_summary
+    ToolId.SUN -> R.string.tool_sun_summary
+    ToolId.UV_INDEX -> R.string.tool_uvi_summary
+    ToolId.LAMPS -> R.string.tool_lamps_summary
+    ToolId.FLUORESCENCE -> R.string.tool_sif_summary
+    ToolId.WATER -> R.string.tool_water_summary
+    ToolId.PREDICT -> R.string.tool_predict_summary
+    ToolId.RAMAN -> R.string.tool_raman_summary
+    ToolId.OLIVE -> R.string.tool_olive_summary
+    ToolId.DRINKS -> R.string.tool_drinks_summary
+    ToolId.TEMPERATURE -> R.string.tool_temperature_summary
+    ToolId.FILM -> R.string.tool_film_summary
+    ToolId.FILTER -> R.string.tool_filter_summary
+    ToolId.HEALTH -> R.string.tool_health_summary
+    ToolId.GAS_COLUMNS -> R.string.tool_gas_summary
+    ToolId.LEAF_CLIP -> R.string.tool_leaf_summary
+    ToolId.GREENHOUSE -> R.string.tool_greenhouse_summary
+    ToolId.WATER_COLOUR -> R.string.tool_watercolour_summary
+    ToolId.SOIL -> R.string.tool_soil_summary
+    ToolId.TEST_KIT -> R.string.tool_kit_summary
+    ToolId.PH -> R.string.tool_ph_summary
+    ToolId.FLUORIMETER -> R.string.tool_fluorimeter_summary
+    ToolId.NUCLEIC -> R.string.tool_nucleic_summary
+    ToolId.GROWTH -> R.string.tool_growth_summary
+    ToolId.CRI -> R.string.tool_cri_summary
+    ToolId.DISPLAY -> R.string.tool_display_summary
+    ToolId.PIGMENT -> R.string.tool_pigment_summary
+    ToolId.GEM -> R.string.tool_gem_summary
+    ToolId.LIGHT_DOSE -> R.string.tool_lightdose_summary
+    ToolId.UV_DOSE -> R.string.tool_uvdose_summary
+    ToolId.SKIN -> R.string.tool_skin_summary
+    ToolId.PULSE -> R.string.tool_pulse_summary
+    ToolId.DIARY -> R.string.tool_diary_summary
+    ToolId.PHYSICS -> R.string.tool_physics_summary
 }
 
 private val ToolId.needsRes: Int get() = when (this) {
@@ -100,6 +232,48 @@ private val ToolId.needsRes: Int get() = when (this) {
     ToolId.COLOUR -> R.string.tool_colour_needs
     ToolId.LIGHT -> R.string.tool_light_needs
     ToolId.KINETICS -> R.string.tool_kinetics_needs
+    ToolId.SUN -> R.string.tool_sun_needs
+    ToolId.UV_INDEX -> R.string.tool_uvi_needs
+    ToolId.LAMPS -> R.string.tool_lamps_needs
+    ToolId.FLUORESCENCE -> R.string.tool_sif_needs
+    ToolId.WATER -> R.string.tool_water_needs
+    ToolId.PREDICT -> R.string.tool_predict_needs
+    ToolId.RAMAN -> R.string.tool_raman_needs
+    ToolId.OLIVE -> R.string.tool_olive_needs
+    ToolId.DRINKS -> R.string.tool_drinks_needs
+    ToolId.TEMPERATURE -> R.string.tool_temperature_needs
+    ToolId.FILM -> R.string.tool_film_needs
+    ToolId.FILTER -> R.string.tool_filter_needs
+    ToolId.HEALTH -> R.string.tool_health_needs
+    ToolId.GAS_COLUMNS -> R.string.tool_gas_needs
+    ToolId.LEAF_CLIP -> R.string.tool_leaf_needs
+    ToolId.GREENHOUSE -> R.string.tool_greenhouse_needs
+    ToolId.WATER_COLOUR -> R.string.tool_watercolour_needs
+    ToolId.SOIL -> R.string.tool_soil_needs
+    ToolId.TEST_KIT -> R.string.tool_kit_needs
+    ToolId.PH -> R.string.tool_ph_needs
+    ToolId.FLUORIMETER -> R.string.tool_fluorimeter_needs
+    ToolId.NUCLEIC -> R.string.tool_nucleic_needs
+    ToolId.GROWTH -> R.string.tool_growth_needs
+    ToolId.CRI -> R.string.tool_cri_needs
+    ToolId.DISPLAY -> R.string.tool_display_needs
+    ToolId.PIGMENT -> R.string.tool_pigment_needs
+    ToolId.GEM -> R.string.tool_gem_needs
+    ToolId.LIGHT_DOSE -> R.string.tool_lightdose_needs
+    ToolId.UV_DOSE -> R.string.tool_uvdose_needs
+    ToolId.SKIN -> R.string.tool_skin_needs
+    ToolId.PULSE -> R.string.tool_pulse_needs
+    ToolId.DIARY -> R.string.tool_diary_needs
+    ToolId.PHYSICS -> R.string.tool_physics_needs
+}
+
+val com.rfsat.pocketspectro.tools.ToolGroup.titleRes: Int get() = when (this) {
+    com.rfsat.pocketspectro.tools.ToolGroup.MONITORING -> R.string.grp_monitoring
+    com.rfsat.pocketspectro.tools.ToolGroup.FIELD -> R.string.grp_field
+    com.rfsat.pocketspectro.tools.ToolGroup.LAB -> R.string.grp_lab
+    com.rfsat.pocketspectro.tools.ToolGroup.LIGHT -> R.string.grp_light
+    com.rfsat.pocketspectro.tools.ToolGroup.EXPOSURE -> R.string.grp_exposure
+    com.rfsat.pocketspectro.tools.ToolGroup.INSTRUMENT -> R.string.grp_instrument
 }
 
 /** Tools tab: the list of tools, or the open tool. */
@@ -137,7 +311,11 @@ private fun ToolList(engine: AcquisitionEngine, onReconnect: () -> Unit) {
                 }
             }
         }
+        KitsRow(engine)
         for (t in ToolId.entries) {
+            if (t == ToolId.entries.first { it.group == t.group }) Text(stringResource(t.group.titleRes),
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp), style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             val av = t.availability(info)
             val ok = av !is Availability.NeedsRange
             Card(
@@ -219,6 +397,39 @@ private fun ToolHost(engine: AcquisitionEngine, tool: ToolId, onReconnect: () ->
                 ToolId.COLOUR -> ColourTool(engine)
                 ToolId.LIGHT -> LightTool(engine)
                 ToolId.KINETICS -> KineticsTool(engine)
+                ToolId.SUN -> SunTool(engine)
+                ToolId.UV_INDEX -> UvIndexTool(engine)
+                ToolId.LAMPS -> LampsTool(engine)
+                ToolId.FLUORESCENCE -> FluorescenceTool(engine)
+                ToolId.WATER -> WaterTool(engine)
+                ToolId.PREDICT -> PredictTool(engine)
+                ToolId.RAMAN -> RamanTool(engine)
+                ToolId.OLIVE -> OliveTool(engine)
+                ToolId.DRINKS -> DrinksTool(engine)
+                ToolId.TEMPERATURE -> TemperatureTool(engine)
+                ToolId.FILM -> FilmTool(engine)
+                ToolId.FILTER -> FilterTool(engine)
+                ToolId.HEALTH -> HealthTool(engine)
+                ToolId.GAS_COLUMNS -> GasColumnsTool(engine)
+                ToolId.LEAF_CLIP -> LeafClipTool(engine)
+                ToolId.GREENHOUSE -> GreenhouseTool(engine)
+                ToolId.WATER_COLOUR -> WaterColourTool(engine)
+                ToolId.SOIL -> SoilTool(engine)
+                ToolId.TEST_KIT -> TestKitTool(engine)
+                ToolId.PH -> PhTool(engine)
+                ToolId.FLUORIMETER -> FluorimeterTool(engine)
+                ToolId.NUCLEIC -> NucleicTool(engine)
+                ToolId.GROWTH -> GrowthTool(engine)
+                ToolId.CRI -> CriTool(engine)
+                ToolId.DISPLAY -> DisplayTool(engine)
+                ToolId.PIGMENT -> PigmentTool(engine)
+                ToolId.GEM -> GemTool(engine)
+                ToolId.LIGHT_DOSE -> WellnessGate { LightDoseTool(engine) }
+                ToolId.UV_DOSE -> WellnessGate { UvDoseTool(engine) }
+                ToolId.SKIN -> WellnessGate { SkinTool(engine) }
+                ToolId.PULSE -> WellnessGate { PulseTool(engine) }
+                ToolId.DIARY -> WellnessGate { DiaryTool(engine) }
+                ToolId.PHYSICS -> PhysicsTool(engine)
             }
         }
     }
@@ -233,6 +444,39 @@ private val ToolId.guideRes: Triple<Int, Int, Int> get() = when (this) {
     ToolId.COLOUR -> Triple(R.string.guide_colour_what, R.string.guide_colour_steps, R.string.guide_colour_tips)
     ToolId.LIGHT -> Triple(R.string.guide_light_what, R.string.guide_light_steps, R.string.guide_light_tips)
     ToolId.KINETICS -> Triple(R.string.guide_kinetics_what, R.string.guide_kinetics_steps, R.string.guide_kinetics_tips)
+    ToolId.SUN -> Triple(R.string.guide_sun_what, R.string.guide_sun_steps, R.string.guide_sun_tips)
+    ToolId.UV_INDEX -> Triple(R.string.guide_uvi_what, R.string.guide_uvi_steps, R.string.guide_uvi_tips)
+    ToolId.LAMPS -> Triple(R.string.guide_lamps_what, R.string.guide_lamps_steps, R.string.guide_lamps_tips)
+    ToolId.FLUORESCENCE -> Triple(R.string.guide_sif_what, R.string.guide_sif_steps, R.string.guide_sif_tips)
+    ToolId.WATER -> Triple(R.string.guide_water_what, R.string.guide_water_steps, R.string.guide_water_tips)
+    ToolId.PREDICT -> Triple(R.string.guide_predict_what, R.string.guide_predict_steps, R.string.guide_predict_tips)
+    ToolId.RAMAN -> Triple(R.string.guide_raman_what, R.string.guide_raman_steps, R.string.guide_raman_tips)
+    ToolId.OLIVE -> Triple(R.string.guide_olive_what, R.string.guide_olive_steps, R.string.guide_olive_tips)
+    ToolId.DRINKS -> Triple(R.string.guide_drinks_what, R.string.guide_drinks_steps, R.string.guide_drinks_tips)
+    ToolId.TEMPERATURE -> Triple(R.string.guide_temperature_what, R.string.guide_temperature_steps, R.string.guide_temperature_tips)
+    ToolId.FILM -> Triple(R.string.guide_film_what, R.string.guide_film_steps, R.string.guide_film_tips)
+    ToolId.FILTER -> Triple(R.string.guide_filter_what, R.string.guide_filter_steps, R.string.guide_filter_tips)
+    ToolId.HEALTH -> Triple(R.string.guide_health_what, R.string.guide_health_steps, R.string.guide_health_tips)
+    ToolId.GAS_COLUMNS -> Triple(R.string.guide_gas_what, R.string.guide_gas_steps, R.string.guide_gas_tips)
+    ToolId.LEAF_CLIP -> Triple(R.string.guide_leaf_what, R.string.guide_leaf_steps, R.string.guide_leaf_tips)
+    ToolId.GREENHOUSE -> Triple(R.string.guide_greenhouse_what, R.string.guide_greenhouse_steps, R.string.guide_greenhouse_tips)
+    ToolId.WATER_COLOUR -> Triple(R.string.guide_watercolour_what, R.string.guide_watercolour_steps, R.string.guide_watercolour_tips)
+    ToolId.SOIL -> Triple(R.string.guide_soil_what, R.string.guide_soil_steps, R.string.guide_soil_tips)
+    ToolId.TEST_KIT -> Triple(R.string.guide_kit_what, R.string.guide_kit_steps, R.string.guide_kit_tips)
+    ToolId.PH -> Triple(R.string.guide_ph_what, R.string.guide_ph_steps, R.string.guide_ph_tips)
+    ToolId.FLUORIMETER -> Triple(R.string.guide_fluorimeter_what, R.string.guide_fluorimeter_steps, R.string.guide_fluorimeter_tips)
+    ToolId.NUCLEIC -> Triple(R.string.guide_nucleic_what, R.string.guide_nucleic_steps, R.string.guide_nucleic_tips)
+    ToolId.GROWTH -> Triple(R.string.guide_growth_what, R.string.guide_growth_steps, R.string.guide_growth_tips)
+    ToolId.CRI -> Triple(R.string.guide_cri_what, R.string.guide_cri_steps, R.string.guide_cri_tips)
+    ToolId.DISPLAY -> Triple(R.string.guide_display_what, R.string.guide_display_steps, R.string.guide_display_tips)
+    ToolId.PIGMENT -> Triple(R.string.guide_pigment_what, R.string.guide_pigment_steps, R.string.guide_pigment_tips)
+    ToolId.GEM -> Triple(R.string.guide_gem_what, R.string.guide_gem_steps, R.string.guide_gem_tips)
+    ToolId.LIGHT_DOSE -> Triple(R.string.guide_lightdose_what, R.string.guide_lightdose_steps, R.string.guide_lightdose_tips)
+    ToolId.UV_DOSE -> Triple(R.string.guide_uvdose_what, R.string.guide_uvdose_steps, R.string.guide_uvdose_tips)
+    ToolId.SKIN -> Triple(R.string.guide_skin_what, R.string.guide_skin_steps, R.string.guide_skin_tips)
+    ToolId.PULSE -> Triple(R.string.guide_pulse_what, R.string.guide_pulse_steps, R.string.guide_pulse_tips)
+    ToolId.DIARY -> Triple(R.string.guide_diary_what, R.string.guide_diary_steps, R.string.guide_diary_tips)
+    ToolId.PHYSICS -> Triple(R.string.guide_physics_what, R.string.guide_physics_steps, R.string.guide_physics_tips)
 }
 
 /** Full guide for a tool: what it does, what it needs, the steps, and tips. */

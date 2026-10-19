@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -246,8 +248,29 @@ private fun ToolEventCard(e: com.rfsat.pocketspectro.data.ToolEvent, onClose: ()
             KeyValue(stringResource(R.string.map_position), "%.6f, %.6f".format(Locale.US, e.latitude, e.longitude) +
                 (e.accuracyM?.let { "  ±%.0f m".format(Locale.US, it) } ?: ""))
             if (e.model.isNotBlank()) KeyValue(stringResource(R.string.home_spectrometer), e.model)
+            if (e.photo.isNotBlank()) ResultPhoto(e.photo)
         }
     }
+}
+
+/** Thumbnail of the photo taken with a result (decoded small, off the main thread). */
+@Composable
+private fun ResultPhoto(name: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val bmp by androidx.compose.runtime.produceState<android.graphics.Bitmap?>(null, name) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val dir = java.io.File(java.io.File(context.getExternalFilesDir(null) ?: context.filesDir, "events"), "photos")
+            val f = java.io.File(dir, name)
+            if (!f.exists()) null else {
+                val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                android.graphics.BitmapFactory.decodeFile(f.path, o)
+                var s = 1; while (o.outWidth / s > 800) s *= 2
+                android.graphics.BitmapFactory.decodeFile(f.path, android.graphics.BitmapFactory.Options().apply { inSampleSize = s })
+            }
+        }
+    }
+    bmp?.let { androidx.compose.foundation.Image(it.asImageBitmap(), null, Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(10.dp)),
+        contentScale = androidx.compose.ui.layout.ContentScale.Crop) }
 }
 
 @Composable
