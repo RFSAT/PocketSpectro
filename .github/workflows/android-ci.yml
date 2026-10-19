@@ -37,12 +37,6 @@ jobs:
       - name: Unit tests (protocol, drivers, processing, fire detection)
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
-      - name: Build debug APK
-        run: |
-          ./gradlew --no-daemon :app:assembleDebug
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/PocketSpectro_v${APP_VERSION}-debug.apk"
-
       - name: Check signing secrets
         # Reports which secrets this run can see (never their values).
         env:
@@ -76,6 +70,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          mkdir -p dist
           ./gradlew --no-daemon :app:bundleRelease :app:assembleRelease
           AAB=app/build/outputs/bundle/release/app-release.aab
           # Refuse to publish an unsigned bundle: Play rejects it.
@@ -102,6 +97,8 @@ jobs:
         run: rm -f "$RUNNER_TEMP/release.jks"
 
       - uses: actions/upload-artifact@v7
+        # Signed release APK only (no debug APK is built).
+        if: env.HAS_KEYSTORE == 'true'
         with:
           name: PocketSpectro-v${{ env.APP_VERSION }}-apk
           path: dist/*.apk

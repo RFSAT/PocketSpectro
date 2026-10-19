@@ -12,7 +12,7 @@ implementation of fire detection with the Ocean Optics NIR microspectrometer, de
 in the [AF3 project (FP7-SEC)](https://rfsat.com/index.php/en/projects-and-activities/completed/af3-fp7-sec).
 On the phone, the app talks to the spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Limited. Version 1.5.0 (build 10500).
+RFSAT Limited. Version 1.6.0 (build 10600).
 
 ## Hardware
 
@@ -70,6 +70,10 @@ simulated model (STS-NIR / STS-VIS / STS-UV) can be switched on the Tools list, 
 **Simulation** panel choosing what the simulated probe looks at, so each tool can be evaluated before
 buying hardware. While a white reference or blank is stored, the simulator shows the white tile or the
 blank cuvette by itself.
+
+Each tool screen starts with a one-line summary and a **How to use ›** link that opens a short guide
+(what the tool does, what it needs, numbered steps and tips). The texts are the `guide_<tool>_what`,
+`guide_<tool>_steps` and `guide_<tool>_tips` strings in `res/values/strings.xml`.
 
 | Tool | What it computes | Code |
 |---|---|---|
@@ -139,8 +143,8 @@ caches tiles on the phone, as OpenStreetMap's tile policy asks. If usage grows, 
 
 ## Build
 
-GitHub Actions (`.github/workflows/android-ci.yml`) runs the unit tests and builds the debug APK on
-every push. With these repository secrets it also produces the signed Play bundle:
+GitHub Actions (`.github/workflows/android-ci.yml`) runs the unit tests on every push and, with these
+repository secrets, builds the signed Play bundle and the signed release APK (no debug APK):
 `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` (the same names, and the same upload key, as the other RFSAT apps).
 
 Toolchain: AGP 9.0.0, Gradle 9.7.0, Kotlin 2.3.0 (built-in Kotlin), Compose BOM 2026.06.01,

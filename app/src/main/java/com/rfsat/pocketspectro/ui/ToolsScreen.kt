@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -35,11 +36,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.rfsat.pocketspectro.R
 import com.rfsat.pocketspectro.core.AcquisitionEngine
@@ -175,6 +183,20 @@ private fun ToolHost(engine: AcquisitionEngine, tool: ToolId, onReconnect: () ->
             Icon(tool.icon, null, tint = MaterialTheme.colorScheme.primary)
             Text(" " + stringResource(tool.titleRes), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
         }
+        // One line on what the tool does, with a link to the full guide (kept out of the way for regular users).
+        var showGuide by rememberSaveable(tool) { mutableStateOf(false) }
+        val summary = stringResource(tool.summaryRes)
+        val link = stringResource(R.string.guide_link)
+        val linkColor = MaterialTheme.colorScheme.primary
+        Text(
+            buildAnnotatedString {
+                append(summary); append("  ")
+                withStyle(SpanStyle(color = linkColor, fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline)) { append(link) }
+            },
+            Modifier.fillMaxWidth().clickable { showGuide = true }.padding(horizontal = 14.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (showGuide) ToolGuideDialog(tool) { showGuide = false }
         val av = tool.availability(info)
         when {
             info == null -> Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -200,4 +222,37 @@ private fun ToolHost(engine: AcquisitionEngine, tool: ToolId, onReconnect: () ->
             }
         }
     }
+}
+
+private val ToolId.guideRes: Triple<Int, Int, Int> get() = when (this) {
+    ToolId.FIRE -> Triple(R.string.guide_fire_what, R.string.guide_fire_steps, R.string.guide_fire_tips)
+    ToolId.EMISSION -> Triple(R.string.guide_emission_what, R.string.guide_emission_steps, R.string.guide_emission_tips)
+    ToolId.VEGETATION -> Triple(R.string.guide_vegetation_what, R.string.guide_vegetation_steps, R.string.guide_vegetation_tips)
+    ToolId.MATCH -> Triple(R.string.guide_match_what, R.string.guide_match_steps, R.string.guide_match_tips)
+    ToolId.CONCENTRATION -> Triple(R.string.guide_concentration_what, R.string.guide_concentration_steps, R.string.guide_concentration_tips)
+    ToolId.COLOUR -> Triple(R.string.guide_colour_what, R.string.guide_colour_steps, R.string.guide_colour_tips)
+    ToolId.LIGHT -> Triple(R.string.guide_light_what, R.string.guide_light_steps, R.string.guide_light_tips)
+    ToolId.KINETICS -> Triple(R.string.guide_kinetics_what, R.string.guide_kinetics_steps, R.string.guide_kinetics_tips)
+}
+
+/** Full guide for a tool: what it does, what it needs, the steps, and tips. */
+@Composable
+private fun ToolGuideDialog(tool: ToolId, onClose: () -> Unit) {
+    val (what, steps, tips) = tool.guideRes
+    AlertDialog(
+        onDismissRequest = onClose,
+        icon = { Icon(tool.icon, null, tint = MaterialTheme.colorScheme.primary) },
+        title = { Text(stringResource(tool.titleRes)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(what), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(tool.needsRes), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.guide_how), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(steps), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.guide_tips), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(tips), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = { ActionButton(onClick = onClose, emphasis = true) { Text(stringResource(R.string.action_close)) } },
+    )
 }

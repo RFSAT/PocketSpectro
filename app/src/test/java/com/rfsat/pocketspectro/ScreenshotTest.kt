@@ -554,6 +554,20 @@ class ScreenshotTest {
         shot("26b_tool_colour_partial_nir_full_length")
     }
 
+    /** Each tool shows a one-line summary with a "How to use" link; the link opens the guide. */
+    @Test fun u11_toolGuide() {
+        prepare()
+        tool(com.rfsat.pocketspectro.tools.ToolId.CONCENTRATION)
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Cuvette(0.0))
+        engine.setRunning(true)
+        show(Tab.TOOLS)
+        freshFrames(1)
+        shot("30a_tool_summary_link")
+        compose.onNode(hasText("How to use", substring = true)).performClick()
+        compose.waitForIdle()
+        com.github.takahirom.roborazzi.captureScreenRoboImage("build/screenshots/30b_tool_guide.png")
+    }
+
     @Test fun u09_mapWithToolResults() {
         prepare()
         seedMapData()

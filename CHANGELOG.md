@@ -7,6 +7,9 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH).
 
+## 1.6.0 (build 10600)
+Every tool now explains itself: a one-line summary under the tool's name, and a "How to use" link that opens a short guide with what the tool measures, what it needs, the steps to follow and practical tips. Regular users keep an uncluttered screen; new users can learn each tool, also with the simulator, before buying a spectrometer.
+
 ## 1.5.0 (build 10500)
 The Colour tool can now be used with spectrometers that cover only part of the visible range, such as the STS-NIR: it shows which part is covered and which colours can still be detected and monitored, and compares samples with a standard measured on the same unit.
 
