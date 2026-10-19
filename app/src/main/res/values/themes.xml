@@ -1,6 +1,14 @@
 <resources>
+    <!--
+      Edge-to-edge without the deprecated Window.setStatusBarColor / setNavigationBarColor calls:
+      transparent system bars come from the theme, the app draws behind them
+      (WindowCompat.setDecorFitsSystemWindows(window, false)) and Compose applies the insets.
+      From Android 15 the system does this itself and ignores these attributes.
+    -->
     <style name="Theme.PocketSpectro" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
     <color name="bg">#FF121416</color>
 </resources>

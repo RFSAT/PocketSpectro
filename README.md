@@ -10,7 +10,7 @@ It started as the port of the Raspberry Pi Zero W "Wi-Fi STS-NIR" web server (20
 Apache/PHP served the UI and a C++ daemon talked to the spectrometer. On the phone, the app talks to the
 spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Ltd. Version 1.4.0 (build 10400).
+RFSAT Ltd. Version 1.4.1 (build 10401).
 
 ## Hardware
 

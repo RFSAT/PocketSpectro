@@ -18,9 +18,10 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -104,7 +106,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Draw behind the system bars on every Android version; Scaffold, TopAppBar and NavigationBar
+        // apply the insets. (androidx enableEdgeToEdge() is not used: it carries the Window bar-colour
+        // calls that Android 15 deprecates; the theme makes the bars transparent instead.)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         val filter = IntentFilter().apply {
             addAction(ACTION_USB_PERMISSION)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
@@ -239,6 +244,16 @@ internal fun AppRoot(
     val tab = tabs.firstOrNull { it.name == tabName } ?: Tab.HOME
     val fireAlarm = armed && frame?.fireConfirmed == true
     val snack = remember { SnackbarHostState() }
+    // Status / navigation bar icons: dark on the light theme, light on the dark theme and on the red alarm bar.
+    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.SideEffect {
+        val window = (view.context as? android.app.Activity)?.window ?: return@SideEffect
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = !dark && !fireAlarm
+            isAppearanceLightNavigationBars = !dark
+        }
+    }
     LaunchedEffect(Unit) { engine.messages.collect { snack.showSnackbar(it) } }
 
     Scaffold(
@@ -291,7 +306,8 @@ internal fun AppRoot(
                 dismissButton = { ActionButton(onClick = { confirmExit = false }) { Text(stringResource(R.string.action_cancel)) } },
             )
         }
-        Box(Modifier.fillMaxSize().padding(pad)) {
+        // imePadding: text fields (tools, logging) stay above the on-screen keyboard.
+        Box(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad).imePadding()) {
             val ready = conn is Connection.Ready
             if (!ready && tab == Tab.LIVE) {
                 NotConnected(conn, onReconnect)
