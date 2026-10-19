@@ -3,14 +3,16 @@
 Android app (Samsung Galaxy S24, Android 8.0+, target API 36) that drives **Ocean Optics / Ocean Insight
 USB spectrometers** directly over USB-OTG and processes spectra in real time. When a near-infrared unit
 covering 766–770 nm is connected (the STS-NIR), it adds potassium-line (K I 766.5 / 769.9 nm)
-**fire detection**. Version 1.0.0 drives the STS family; the other Ocean families are recognised and
-listed below with their status.
+**fire detection**; the Tools tab adds further measuring tools (see below). The STS family is fully
+supported; the other Ocean families are recognised and listed below with their status.
 
 It started as the port of the Raspberry Pi Zero W "Wi-Fi STS-NIR" web server (2015–2019), where
-Apache/PHP served the UI and a C++ daemon talked to the spectrometer. On the phone, the app talks to the
-spectrometer itself and shows the UI on the phone screen.
+Apache/PHP served the UI and a C++ daemon talked to the spectrometer. That system was the first
+implementation of fire detection with the Ocean Optics NIR microspectrometer, developed by RFSAT Limited
+in the [AF3 project (FP7-SEC)](https://rfsat.com/index.php/en/projects-and-activities/completed/af3-fp7-sec).
+On the phone, the app talks to the spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Ltd. Version 1.4.1 (build 10401).
+RFSAT Limited. Version 1.4.1 (build 10401).
 
 ## Hardware
 
