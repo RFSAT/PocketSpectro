@@ -7,6 +7,9 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH).
 
+## 1.4.2 (build 10402)
+A maintenance release with the improvements of 1.4.1: the app displays edge to edge on all Android versions and is ready for Android 15 and later, and text fields stay above the on-screen keyboard.
+
 ## 1.4.1 (build 10401)
 The app now displays edge to edge on all Android versions and is ready for Android 15 and later, and text fields stay above the on-screen keyboard.
 

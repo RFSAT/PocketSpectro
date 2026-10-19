@@ -12,7 +12,7 @@ implementation of fire detection with the Ocean Optics NIR microspectrometer, de
 in the [AF3 project (FP7-SEC)](https://rfsat.com/index.php/en/projects-and-activities/completed/af3-fp7-sec).
 On the phone, the app talks to the spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Limited. Version 1.4.1 (build 10401).
+RFSAT Limited. Version 1.4.2 (build 10402).
 
 ## Hardware
 
