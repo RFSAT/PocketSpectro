@@ -35,6 +35,9 @@ import kotlin.math.pow
 
 data class Band(val from: Double, val to: Double, val color: Color)
 
+/** Colour of the second (overlay) trace: a library match, a fit or a reference. */
+val OverlayColor = Color(0xFF00897B)
+
 /**
  * Line plot of a spectrum with auto-scaled axes. Pinch / drag zooms and pans the x axis,
  * a tap places a read-out cursor, double tap resets the view.
@@ -50,6 +53,10 @@ fun SpectrumChart(
     bands: List<Band> = emptyList(),
     markers: List<Double> = emptyList(),
     hLine: Double? = null,
+    /** Second trace (x, y) on the same axes, e.g. a library match or a fitted line. */
+    overlay: Pair<DoubleArray, DoubleArray>? = null,
+    /** Draw the main trace as dots instead of a line (calibration points, time series). */
+    dots: Boolean = false,
 ) {
     val dark = isSystemInDarkTheme()
     val trace = if (dark) TraceColorDark else TraceColor
@@ -111,6 +118,7 @@ fun SpectrumChart(
             if (v.isFinite()) { if (v < lo) lo = v; if (v > hi) hi = v }
         }
         hLine?.let { if (it.isFinite()) { lo = minOf(lo, it); hi = maxOf(hi, it) } }
+        overlay?.let { (ox, oy) -> for (i in ox.indices) if (ox[i] in xMin..xMax && oy.getOrNull(i)?.isFinite() == true) { lo = minOf(lo, oy[i]); hi = maxOf(hi, oy[i]) } }
         if (!lo.isFinite() || !hi.isFinite()) { lo = 0.0; hi = 1.0 }
         if (hi - lo < 1e-9) { hi += 0.5; lo -= 0.5 }
         val pad = (hi - lo) * 0.05
@@ -147,14 +155,29 @@ fun SpectrumChart(
         }
 
         // trace
-        val path = Path()
-        var started = false
-        for (i in x.indices) {
-            if (x[i] < xMin || x[i] > xMax || !y[i].isFinite()) { started = false; continue }
-            val p = Offset(px(x[i]), py(y[i]))
-            if (!started) { path.moveTo(p.x, p.y); started = true } else path.lineTo(p.x, p.y)
+        if (dots) {
+            for (i in x.indices) if (x[i] in xMin..xMax && y[i].isFinite()) drawCircle(trace, 5f, Offset(px(x[i]), py(y[i])))
+        } else {
+            val path = Path()
+            var started = false
+            for (i in x.indices) {
+                if (x[i] < xMin || x[i] > xMax || !y[i].isFinite()) { started = false; continue }
+                val p = Offset(px(x[i]), py(y[i]))
+                if (!started) { path.moveTo(p.x, p.y); started = true } else path.lineTo(p.x, p.y)
+            }
+            drawPath(path, trace, style = Stroke(width = 2.2f))
         }
-        drawPath(path, trace, style = Stroke(width = 2.2f))
+
+        // Overlay on top of the trace, so it stays visible over a noisy spectrum.
+        overlay?.let { (ox, oy) ->
+            val op = Path(); var st = false
+            for (i in ox.indices) {
+                if (ox[i] < xMin || ox[i] > xMax || oy.getOrNull(i)?.isFinite() != true) { st = false; continue }
+                val p = Offset(px(ox[i]), py(oy[i]))
+                if (!st) { op.moveTo(p.x, p.y); st = true } else op.lineTo(p.x, p.y)
+            }
+            drawPath(op, OverlayColor, style = Stroke(width = 2.4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f))))
+        }
 
         for (m in markers) {
             if (m < xMin || m > xMax) continue

@@ -34,6 +34,8 @@ fun SetupScreen(engine: AcquisitionEngine, onReconnect: () -> Unit) {
         Section(stringResource(R.string.home_spectrometer)) {
             SwitchRow(stringResource(R.string.set_use_sim), s.useSimulator, { v -> engine.store.update { it.copy(useSimulator = v) }; onReconnect() },
                 detail = stringResource(R.string.set_use_sim_detail))
+            if (s.useSimulator) Picker(stringResource(R.string.set_sim_model), com.rfsat.pocketspectro.sim.SimModel.entries, s.simModel,
+                { res.getString(R.string.set_sim_model_value, it.label) }, { m -> engine.store.update { it.copy(simModel = m) }; engine.connectSimulator(m) })
             engine.simulator?.let { sim ->
                 var sample by androidx.compose.runtime.remember(sim) { androidx.compose.runtime.mutableStateOf(sim.sampleOn) }
                 SwitchRow(stringResource(R.string.set_sim_sample), sample, { sample = it; sim.sampleOn = it },
@@ -110,6 +112,8 @@ fun SetupScreen(engine: AcquisitionEngine, onReconnect: () -> Unit) {
                 { b -> upd { it.copy(baseline = b) } })
             SwitchRow(stringResource(R.string.set_dark_corrected), s.fireUseDarkCorrected, { v -> engine.store.update { it.copy(fireUseDarkCorrected = v) } },
                 detail = stringResource(R.string.set_dark_corrected_detail))
+            SwitchRow(stringResource(R.string.set_avoid_o2), s.fire.avoidOxygenBand, { v -> engine.store.update { it.copy(fire = it.fire.copy(avoidOxygenBand = v)) } },
+                detail = stringResource(R.string.set_avoid_o2_detail))
             SwitchRow(stringResource(R.string.set_alarm_sound), s.alarmSound, { v -> engine.store.update { it.copy(alarmSound = v) } })
             SwitchRow(stringResource(R.string.set_alarm_vibration), s.alarmVibrate, { v -> engine.store.update { it.copy(alarmVibrate = v) } })
         }

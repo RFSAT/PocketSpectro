@@ -13,7 +13,9 @@ import kotlin.random.Random
  * integration time, shot/read noise, and optionally the K I doublet (766.5 / 769.9 nm)
  * that a biomass flame emits.
  */
-class SimulatedSpectrometer(seed: Int = 1, private val nir: Boolean = true) : Spectrometer {
+class SimulatedSpectrometer(seed: Int = 1, val model: SimModel = SimModel.NIR) : Spectrometer {
+    constructor(seed: Int = 1, nir: Boolean) : this(seed, if (nir) SimModel.NIR else SimModel.VIS)
+
     private val rnd = Random(seed)
     private var integrationUs = 100_000L
     private var shutterOpen = true
@@ -25,20 +27,26 @@ class SimulatedSpectrometer(seed: Int = 1, private val nir: Boolean = true) : Sp
     var fireOn: Boolean
         get() = fire.hold
         set(v) { fire.hold = v }
-    /** Places a sample with water (970 nm) and C-H (915 nm) absorption bands in the beam. */
+    /** Places a sample with water (970 nm) and C-H (915 nm) absorption bands in the beam (field scene). */
     @Volatile var sampleOn = false
 
+    /** What the probe is looking at; the tools switch it (see [SimScene]). */
+    @Volatile var scene: SimScene = SimScene.Field
+
+    private val lightNorm = HashMap<SimLight, Double>()
+    private val emitNorm = HashMap<SimEmitter, Double>()
+
     private var current = DeviceInfo(
-        model = if (nir) "STS-NIR (simulated)" else "STS-VIS (simulated)",
+        model = "${model.label} (simulated)",
         serial = "SIM00001",
         unbinnedPixels = StsProtocol.UNBINNED_PIXELS,
         binningFactor = 0,
         maxBinningFactor = 3,
-        wavelengthCoefficients = if (nir) doubleArrayOf(636.0, 0.473, -2.0e-5, 0.0) else doubleArrayOf(338.0, 0.46, -1.5e-5, 0.0),
+        wavelengthCoefficients = model.coefficients,
         nonlinearityCoefficients = doubleArrayOf(1.0, 1.2e-6, -1.0e-10, 0.0, 0.0, 0.0, 0.0, 0.0),
         maxCounts = StsProtocol.MAX_COUNTS,
         simulated = true,
-        fireCapable = nir,
+        fireCapable = model == SimModel.NIR,
         interfaceLabel = "simulated, no USB",
     )
 
@@ -60,11 +68,15 @@ class SimulatedSpectrometer(seed: Int = 1, private val nir: Boolean = true) : Sp
         val wl = current.wavelengths()
         val bin = 1 shl current.binningFactor
         val tScale = integrationUs / 100_000.0
-        val flame = fire.level(System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        val flame = fire.level(now)
+        val sc = scene
         return IntArray(wl.size) { i ->
             val l = wl[i]
             var signal = 0.0
-            if (shutterOpen) {
+            if (shutterOpen && sc !is SimScene.Field) {
+                signal = sceneSignal(l, sc, now) * tScale
+            } else if (shutterOpen) {
                 // Smooth continuum peaking near 850 nm with a vegetation edge around 720 nm.
                 val cont = 3200.0 * exp(-((l - 860.0) / 210.0).pow(2)) * (1.0 / (1.0 + exp(-(l - 715.0) / 12.0)) * 0.7 + 0.3)
                 val trans = if (sampleOn) 0.55 * exp(-0.9 * band(l, 970.0, 28.0) - 0.4 * band(l, 915.0, 14.0) - 0.15 * band(l, 740.0, 30.0)) else 1.0
@@ -80,6 +92,31 @@ class SimulatedSpectrometer(seed: Int = 1, private val nir: Boolean = true) : Sp
     }
 
     private fun band(l: Double, centre: Double, width: Double) = exp(-((l - centre) / width).pow(2))
+
+    /** Counts per 100 ms for the non-field scenes (the detector response is part of every path). */
+    private fun sceneSignal(l: Double, sc: SimScene, now: Long): Double = when (sc) {
+        is SimScene.Reflect -> 11_000.0 * SimOptics.detector(l) * SimOptics.light(l, sc.light) / norm(sc.light) *
+            SimOptics.reflectance(l, sc.target, now)
+        is SimScene.Cuvette -> {
+            val c = sc.reaction?.concentration(now) ?: sc.concentration
+            11_000.0 * SimOptics.detector(l) * SimOptics.light(l, SimLight.HALOGEN) / norm(SimLight.HALOGEN) *
+                0.9 * Math.pow(10.0, -SimOptics.dyeAbsorptivity(l) * c)
+        }
+        is SimScene.Emit -> SimOptics.emitterGain(sc.emitter) * sc.intensity * SimOptics.detector(l) *
+            SimOptics.emission(l, sc.emitter) / norm(sc.emitter)
+        SimScene.Field -> 0.0
+    }
+
+    private fun norm(s: SimLight) = lightNorm.getOrPut(s) {
+        (185..1100).maxOf { SimOptics.detector(it.toDouble()) * SimOptics.light(it.toDouble(), s) }
+    }
+
+    private fun norm(e: SimEmitter) = emitNorm.getOrPut(e) {
+        val wl = current.wavelengths()
+        var m = 1e-12
+        var l = wl.first(); while (l <= wl.last()) { m = maxOf(m, SimOptics.detector(l) * SimOptics.emission(l, e)); l += 0.1 }
+        m
+    }
 
     private fun line(l: Double, centre: Double) = exp(-((l - centre) / 0.75).pow(2))
 

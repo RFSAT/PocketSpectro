@@ -38,10 +38,11 @@ class ScreenshotTest {
     private val app get() = RuntimeEnvironment.getApplication() as SpectroApp
     private val engine: AcquisitionEngine get() = app.engine
 
-    private fun prepare(simulator: Boolean = true, gps: Boolean = true, nir: Boolean = true) {
+    private fun prepare(simulator: Boolean = true, gps: Boolean = true, nir: Boolean = true,
+                        model: com.rfsat.pocketspectro.sim.SimModel = if (nir) com.rfsat.pocketspectro.sim.SimModel.NIR else com.rfsat.pocketspectro.sim.SimModel.VIS) {
         engine.store.update {
             it.copy(useSimulator = simulator, gpsTagging = gps, integrationMs = 100.0, scansToAverage = 1, boxcarWidth = 0,
-                displayMode = DisplayMode.COUNTS)
+                displayMode = DisplayMode.COUNTS, simModel = model)
         }
         if (gps) {
             shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -54,19 +55,19 @@ class ScreenshotTest {
             shadowOf(lm).simulateLocation(loc)
         }
         if (simulator) {
-            engine.connectSimulator(nir)
+            engine.connectSimulator(model)
             val t0 = System.currentTimeMillis()
             while (engine.connection.value !is com.rfsat.pocketspectro.core.Connection.Ready && System.currentTimeMillis() - t0 < 10_000) Thread.sleep(20)
         }
     }
 
     private fun show(tab: Tab, exitDialog: Boolean = false, sessions: Boolean = false, mapSelect: Int? = null,
-                     store: Boolean = false) {
+                     store: Boolean = false, tool: com.rfsat.pocketspectro.tools.ToolId? = null) {
         com.rfsat.pocketspectro.ui.StoreShots.hideVersion = store
         compose.setContent {
             SpectroTheme {
                 AppRoot(engine, {}, {}, initialTab = tab.ordinal, showExitDialog = exitDialog,
-                    initialLogSessions = sessions, initialMapSelection = mapSelect)
+                    initialLogSessions = sessions, initialMapSelection = mapSelect, initialTool = tool)
             }
         }
     }
@@ -256,7 +257,7 @@ class ScreenshotTest {
         engine.applyRecommendedFirePreset()
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE)
+        show(Tab.TOOLS, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         freshFrames(2)
         shot("04_fire_clear")
     }
@@ -267,7 +268,7 @@ class ScreenshotTest {
         engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE)
+        show(Tab.TOOLS, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         freshFrames(2)
         shot("04b_fire_pi_preset_no_flame")
     }
@@ -279,7 +280,7 @@ class ScreenshotTest {
         engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE)
+        show(Tab.TOOLS, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         waitFor { engine.frame.value?.fireConfirmed == true }
         freshFrames(1)
         shot("05_fire_detected")
@@ -330,7 +331,7 @@ class ScreenshotTest {
         engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE)
+        show(Tab.TOOLS, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         waitFor { engine.frame.value?.fireConfirmed == true }
         shot("10_fire_detected_dark")
     }
@@ -352,7 +353,7 @@ class ScreenshotTest {
         engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE)
+        show(Tab.TOOLS, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         waitFor { engine.frame.value?.fireConfirmed == true }
         shot("12_fire_full_length")
     }
@@ -388,7 +389,7 @@ class ScreenshotTest {
         engine.setRunning(true)
         waitFor { engine.connection.value is com.rfsat.pocketspectro.core.Connection.Ready }
         engine.injectSimFire()
-        show(Tab.FIRE)
+        show(Tab.TOOLS, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         waitFor { engine.frame.value?.fireConfirmed == true }
         freshFrames(1)
         shot("16_fire_sim_manual_full_length")
@@ -401,9 +402,155 @@ class ScreenshotTest {
             simFire = com.rfsat.pocketspectro.sim.SimFireConfig(mode = com.rfsat.pocketspectro.sim.SimFireMode.RANDOM, meanIntervalSec = 120.0)) }
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE)
+        show(Tab.TOOLS, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         freshFrames(2)
         shot("17_fire_sim_random_full_length")
+    }
+
+    // ---- Tools ----------------------------------------------------------------------------------
+
+    private fun tool(t: com.rfsat.pocketspectro.tools.ToolId) { engine.openTool(t) }
+
+    private fun darkAndReference() {
+        engine.reference.value?.let { engine.clearReference() }
+        engine.captureDarkAndReference()
+        waitFor(20_000) { engine.reference.value != null }
+    }
+
+    @Test fun u00_toolsListNir() {
+        prepare()
+        show(Tab.TOOLS)
+        shot("20_tools_list_nir")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u01_toolsListVis() {
+        prepare(model = com.rfsat.pocketspectro.sim.SimModel.VIS)
+        show(Tab.TOOLS)
+        shot("21_tools_list_vis_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u02_emission() {
+        prepare()
+        tool(com.rfsat.pocketspectro.tools.ToolId.EMISSION)
+        engine.tools.emissionArm(true)
+        engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
+        engine.setRunning(true)
+        show(Tab.TOOLS)
+        freshFrames(6)
+        shot("22_tool_emission_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u03_vegetation() {
+        prepare()
+        tool(com.rfsat.pocketspectro.tools.ToolId.VEGETATION)
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Reflect(com.rfsat.pocketspectro.sim.SimTarget.LEAF_HEALTHY, com.rfsat.pocketspectro.sim.SimLight.DAYLIGHT))
+        waitFor { engine.connection.value is com.rfsat.pocketspectro.core.Connection.Ready }
+        darkAndReference()
+        engine.tools.vegInterval(1.0)
+        engine.tools.vegRecording(true)
+        engine.setRunning(true)
+        show(Tab.TOOLS)
+        waitFor { engine.tools.vegetation.value.points >= 2 }
+        shot("23_tool_vegetation_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u04_match() {
+        prepare()
+        tool(com.rfsat.pocketspectro.tools.ToolId.MATCH)
+        val sim = engine.simulator!!
+        val wl = sim.info.wavelengths()
+        val root = engine.sessionsRoot.parentFile!!
+        for (m in listOf(com.rfsat.pocketspectro.sim.SimTarget.PAPER, com.rfsat.pocketspectro.sim.SimTarget.COTTON,
+                com.rfsat.pocketspectro.sim.SimTarget.POLYESTER, com.rfsat.pocketspectro.sim.SimTarget.POLYETHYLENE, com.rfsat.pocketspectro.sim.SimTarget.NYLON)) {
+            com.rfsat.pocketspectro.tools.SpectralLibrary.save(root, m.name.lowercase().replaceFirstChar { it.uppercase() },
+                com.rfsat.pocketspectro.tools.SpectralLibrary.Quantity.REFLECTANCE, sim.info.model, wl,
+                DoubleArray(wl.size) { com.rfsat.pocketspectro.sim.SimOptics.reflectance(wl[it], m, 0L) })
+        }
+        engine.tools.libraryChanged()
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Reflect(com.rfsat.pocketspectro.sim.SimTarget.POLYESTER))
+        darkAndReference()
+        engine.setRunning(true)
+        show(Tab.TOOLS)
+        freshFrames(3)
+        shot("24_tool_match_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u05_concentration() {
+        prepare()
+        tool(com.rfsat.pocketspectro.tools.ToolId.CONCENTRATION)
+        darkAndReference()
+        engine.setRunning(true)
+        for (c in listOf(1.0, 2.0, 4.0, 8.0)) {
+            engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Cuvette(c))
+            freshFrames(2)
+            val f = engine.frame.value!!
+            val a = com.rfsat.pocketspectro.tools.BeerLambert.absorbance(f.wavelengths, f.counts, f.reference!!, 664.0, 2.0)
+            engine.tools.concUpdate { it.copy(standards = it.standards + com.rfsat.pocketspectro.tools.BeerLambert.Standard(c, a)) }
+        }
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Cuvette(5.3))
+        show(Tab.TOOLS)
+        freshFrames(3)
+        shot("25_tool_concentration_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u06_colour() {
+        prepare(model = com.rfsat.pocketspectro.sim.SimModel.VIS)
+        tool(com.rfsat.pocketspectro.tools.ToolId.COLOUR)
+        darkAndReference()
+        engine.setRunning(true)
+        freshFrames(2)
+        val f = engine.frame.value!!
+        val lab = com.rfsat.pocketspectro.tools.Colorimetry.lab(com.rfsat.pocketspectro.tools.Colorimetry.reflectanceXYZ(f.wavelengths, f.counts.indices.map { f.counts[it] / f.reference!![it] }.toDoubleArray()))
+        engine.tools.colourUpdate { it.copy(standard = lab) }
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Reflect(com.rfsat.pocketspectro.sim.SimTarget.TILE_ORANGE))
+        show(Tab.TOOLS)
+        freshFrames(3)
+        shot("26_tool_colour_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u07_light() {
+        prepare(model = com.rfsat.pocketspectro.sim.SimModel.VIS)
+        tool(com.rfsat.pocketspectro.tools.ToolId.LIGHT)
+        waitFor { engine.connection.value is com.rfsat.pocketspectro.core.Connection.Ready }
+        engine.captureDark(useShutter = true)
+        waitFor { engine.dark.value != null }
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Emit(com.rfsat.pocketspectro.sim.SimEmitter.LAMP_2856K))
+        engine.setRunning(true)
+        freshFrames(2)
+        val f = engine.frame.value!!
+        engine.tools.lightUpdate { it.copy(response = com.rfsat.pocketspectro.tools.LightMetrics.responseFromLamp(f.wavelengths, f.counts, 2856.0)) }
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Emit(com.rfsat.pocketspectro.sim.SimEmitter.LED_WHITE_COOL))
+        show(Tab.TOOLS)
+        freshFrames(3)
+        shot("27_tool_light_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u08_kinetics() {
+        prepare()
+        tool(com.rfsat.pocketspectro.tools.ToolId.KINETICS)
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Cuvette(8.0))
+        darkAndReference()
+        engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Cuvette(8.0, com.rfsat.pocketspectro.sim.SimScene.Reaction(8.0, 0.08, System.currentTimeMillis())))
+        engine.setRunning(true)
+        engine.tools.kineticsRecording(true)
+        show(Tab.TOOLS)
+        waitFor(40_000) { engine.tools.kinetics.value.points.size >= 60 }
+        shot("28_tool_kinetics_full_length")
+    }
+
+    @Test fun u09_mapWithToolResults() {
+        prepare()
+        seedMapData()
+        val now = System.currentTimeMillis()
+        for (i in 0..24) {
+            val ndvi = 0.15 + 0.7 * (0.5 + 0.5 * kotlin.math.sin(i / 3.0))
+            engine.tools.record(com.rfsat.pocketspectro.data.ToolEvent(now + i * 5000, 37.9545 + i * 0.00042, 23.7935 + i * 0.00068, 4.0,
+                "VEGETATION", "NDVI %.2f".format(java.util.Locale.US, ndvi), ndvi, com.rfsat.pocketspectro.tools.Vegetation.colour(ndvi), "", "STS-NIR"))
+        }
+        com.rfsat.pocketspectro.ui.PreviewTiles.loaded = 0
+        show(Tab.MAP)
+        waitFor(40_000) { com.rfsat.pocketspectro.ui.PreviewTiles.loaded > 0 }
+        shot("29_map_with_tool_results")
     }
 
     // ---- Google Play listing set (9:16, no version shown) -> build/screenshots/play/ ----
@@ -435,7 +582,7 @@ class ScreenshotTest {
         engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE, store = true)
+        show(Tab.TOOLS, store = true, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         waitFor { engine.frame.value?.fireConfirmed == true }
         freshFrames(1)
         storeShot("2_fire_detection")
@@ -500,7 +647,7 @@ class ScreenshotTest {
         engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
         engine.armFire(true)
         engine.setRunning(true)
-        show(Tab.FIRE, store = true)
+        show(Tab.TOOLS, store = true, tool = com.rfsat.pocketspectro.tools.ToolId.FIRE)
         waitFor { engine.frame.value?.fireConfirmed == true }
         freshFrames(1)
         storeShot("8_fire_dark_mode")

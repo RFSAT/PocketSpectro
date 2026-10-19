@@ -67,6 +67,7 @@ private const val TRACK_SRC = "ps-track"; private const val TRACK_LYR = "ps-trac
 private const val EVENT_SRC = "ps-events"; private const val EVENT_LYR = "ps-events-l"
 private const val SEL_SRC = "ps-sel"; private const val SEL_LYR = "ps-sel-l"
 private const val OWN_SRC = "ps-own"; private const val OWN_LYR = "ps-own-l"
+private const val TOOL_SRC = "ps-tools"; private const val TOOL_LYR = "ps-tools-l"
 private const val FLAME = "ps-flame"; private const val FLAME_SIM = "ps-flame-sim"
 
 /** Detections recorded from the built-in simulator carry its model name. */
@@ -88,6 +89,8 @@ fun EventMap(
     recenterKey: Int,
     onEventTap: (FireEvent?) -> Unit,
     modifier: Modifier = Modifier,
+    toolEvents: List<com.rfsat.pocketspectro.data.ToolEvent> = emptyList(),
+    onToolTap: (com.rfsat.pocketspectro.data.ToolEvent) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -104,6 +107,8 @@ fun EventMap(
     val lastSelected = remember { mutableStateOf<FireEvent?>(null) }
     val currentEvents = rememberUpdatedState(events)
     val currentTap = rememberUpdatedState(onEventTap)
+    val currentTools = rememberUpdatedState(toolEvents)
+    val currentToolTap = rememberUpdatedState(onToolTap)
 
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, e ->
@@ -135,15 +140,18 @@ fun EventMap(
                     val screen = m.projection.toScreenLocation(pt)
                     val hit = m.queryRenderedFeatures(screen, EVENT_LYR).firstOrNull()
                     val idx = hit?.getNumberProperty("i")?.toInt()
-                    currentTap.value(idx?.let { currentEvents.value.getOrNull(it) })
+                    val toolHit = if (hit == null) m.queryRenderedFeatures(screen, TOOL_LYR).firstOrNull()?.getNumberProperty("t")?.toInt() else null
+                    val toolEvent = toolHit?.let { currentTools.value.getOrNull(it) }
+                    if (toolEvent != null) currentToolTap.value(toolEvent)
+                    else currentTap.value(idx?.let { currentEvents.value.getOrNull(it) })
                     true
                 }
                 m.setStyle(Style.Builder().fromJson(MapStyles.styleFor(layer))) { style ->
                     styleHolder.value = style; loadedLayer.value = layer
                     ensureLayers(style, context)
-                    updateData(style, tracks, events, selected, own)
+                    updateData(style, tracks, events, selected, own, toolEvents)
                     if (!didInitialCamera.value) {
-                        fitCamera(m, tracks, events, own, animate = false)
+                        fitCamera(m, tracks, events, own, animate = false, tools = toolEvents)
                         didInitialCamera.value = true
                     }
                 }
@@ -153,13 +161,13 @@ fun EventMap(
                 map.setStyle(Style.Builder().fromJson(MapStyles.styleFor(layer))) { style ->
                     styleHolder.value = style; loadedLayer.value = layer
                     ensureLayers(style, context)
-                    updateData(style, tracks, events, selected, own)
+                    updateData(style, tracks, events, selected, own, toolEvents)
                 }
             } else {
-                styleHolder.value?.let { updateData(it, tracks, events, selected, own) }
+                styleHolder.value?.let { updateData(it, tracks, events, selected, own, toolEvents) }
             }
             if (fitKey != lastFit.value) {
-                fitCamera(map, tracks, events, own, animate = true)
+                fitCamera(map, tracks, events, own, animate = true, tools = toolEvents)
                 lastFit.value = fitKey
             }
             if (selected != null && selected != lastSelected.value) {
@@ -189,9 +197,14 @@ private fun ensureLayers(style: Style, context: android.content.Context) {
     if (style.getSource(EVENT_SRC) == null) style.addSource(GeoJsonSource(EVENT_SRC))
     if (style.getSource(SEL_SRC) == null) style.addSource(GeoJsonSource(SEL_SRC))
     if (style.getSource(OWN_SRC) == null) style.addSource(GeoJsonSource(OWN_SRC))
+    if (style.getSource(TOOL_SRC) == null) style.addSource(GeoJsonSource(TOOL_SRC))
     if (style.getLayer(TRACK_LYR) == null) style.addLayer(LineLayer(TRACK_LYR, TRACK_SRC).withProperties(
         PropertyFactory.lineColor("#1E88E5"), PropertyFactory.lineWidth(3.5f), PropertyFactory.lineOpacity(0.85f),
         PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND), PropertyFactory.lineCap(Property.LINE_CAP_ROUND)))
+    // Tool results (vegetation survey points, matches, concentrations...), coloured per result.
+    if (style.getLayer(TOOL_LYR) == null) style.addLayer(CircleLayer(TOOL_LYR, TOOL_SRC).withProperties(
+        PropertyFactory.circleRadius(7f), PropertyFactory.circleColor(Expression.toColor(Expression.get("c"))),
+        PropertyFactory.circleStrokeColor("#FFFFFF"), PropertyFactory.circleStrokeWidth(2f)))
     if (style.getLayer(SEL_LYR) == null) style.addLayer(CircleLayer(SEL_LYR, SEL_SRC).withProperties(
         PropertyFactory.circleRadius(21f), PropertyFactory.circleColor("#00000000"),
         PropertyFactory.circleStrokeColor("#FFC107"), PropertyFactory.circleStrokeWidth(4f)))
@@ -205,7 +218,12 @@ private fun ensureLayers(style: Style, context: android.content.Context) {
         PropertyFactory.circleStrokeColor("#FFFFFF"), PropertyFactory.circleStrokeWidth(3f)))
 }
 
-private fun updateData(style: Style, tracks: List<SessionTrack>, events: List<FireEvent>, selected: FireEvent?, own: GeoFix?) {
+private fun updateData(style: Style, tracks: List<SessionTrack>, events: List<FireEvent>, selected: FireEvent?, own: GeoFix?,
+                       tools: List<com.rfsat.pocketspectro.data.ToolEvent>) {
+    style.getSourceAs<GeoJsonSource>(TOOL_SRC)?.setGeoJson(FeatureCollection.fromFeatures(
+        tools.mapIndexed { i, e ->
+            Feature.fromGeometry(Point.fromLngLat(e.longitude, e.latitude)).also { it.addNumberProperty("t", i); it.addStringProperty("c", e.colour) }
+        }))
     style.getSourceAs<GeoJsonSource>(TRACK_SRC)?.setGeoJson(FeatureCollection.fromFeatures(
         tracks.filter { it.points.size >= 2 }.map { t ->
             Feature.fromGeometry(LineString.fromLngLats(t.points.map { Point.fromLngLat(it.longitude, it.latitude) }))
@@ -223,8 +241,9 @@ private fun updateData(style: Style, tracks: List<SessionTrack>, events: List<Fi
 }
 
 /** Frames every detection and track point; falls back to the phone's position, then the world. */
-private fun fitCamera(map: MapLibreMap, tracks: List<SessionTrack>, events: List<FireEvent>, own: GeoFix?, animate: Boolean) {
-    val pts = events.map { LatLng(it.latitude, it.longitude) } +
+private fun fitCamera(map: MapLibreMap, tracks: List<SessionTrack>, events: List<FireEvent>, own: GeoFix?, animate: Boolean,
+                      tools: List<com.rfsat.pocketspectro.data.ToolEvent> = emptyList()) {
+    val pts = events.map { LatLng(it.latitude, it.longitude) } + tools.map { LatLng(it.latitude, it.longitude) } +
         tracks.flatMap { t -> t.points.map { LatLng(it.latitude, it.longitude) } }
     val update = when {
         pts.size >= 2 && pts.distinct().size >= 2 -> {

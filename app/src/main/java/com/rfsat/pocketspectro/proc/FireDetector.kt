@@ -28,6 +28,8 @@ object FireDetector {
 
     const val K_LINE_1_NM = 766.49
     const val K_LINE_2_NM = 769.90
+    /** Short-wavelength edge of the O2 A band (its head is at 759.4 nm). */
+    const val O2_A_BAND_START_NM = 757.5
 
     enum class Algorithm { LOCAL_MAXIMUM, PI_IDENTICAL }
 
@@ -49,6 +51,11 @@ object FireDetector {
         /** Flank regions start this far outside the line windows and are this wide (nm, or pixels in PIXEL mode x2). */
         val flankGapNm: Double = 2.0,
         val flankWidthNm: Double = 8.0,
+        /**
+         * Keep the left flank below the atmospheric oxygen A band (759-765 nm), which in daylight
+         * pulls the continuum down next to the K I lines and makes them look brighter than they are.
+         */
+        val avoidOxygenBand: Boolean = true,
         /** Consecutive positive frames required before raising an alarm (Pi: 1). */
         val confirmFrames: Int = 1,
     )
@@ -146,7 +153,12 @@ object FireDetector {
             val step = ((wavelengths[hi] - wavelengths[lo]) / (hi - lo).coerceAtLeast(1)).coerceAtLeast(1e-6)
             (cfg.flankGapNm / step).toInt().coerceAtLeast(1) to (cfg.flankWidthNm / step).toInt().coerceAtLeast(2)
         }
-        val l = (lo - gap - width).coerceAtLeast(0)..(lo - gap).coerceAtLeast(0)
+        var l = (lo - gap - width).coerceAtLeast(0)..(lo - gap).coerceAtLeast(0)
+        if (cfg.avoidOxygenBand && cfg.windowMode == WindowMode.WAVELENGTH && wavelengths[l.last] > O2_A_BAND_START_NM) {
+            // Same width, ending just below the band.
+            val end = (0 until n).lastOrNull { wavelengths[it] <= O2_A_BAND_START_NM } ?: l.last
+            l = (end - width).coerceAtLeast(0)..end
+        }
         val r = (hi + gap).coerceAtMost(n - 1)..(hi + gap + width).coerceAtMost(n - 1)
         return l to r
     }

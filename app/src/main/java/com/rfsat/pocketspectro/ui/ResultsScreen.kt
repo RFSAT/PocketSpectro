@@ -52,6 +52,10 @@ fun ResultsScreen(engine: AcquisitionEngine) {
         sessions = engine.sessionsRoot.listFiles { f -> f.isDirectory }?.sortedByDescending { it.name } ?: emptyList()
     }
     LaunchedEffect(journalVersion, refresh) { journalCount = engine.journal.load().size }
+    val toolVersion by engine.tools.eventsVersion.collectAsState()
+    var toolCount by remember { mutableIntStateOf(0) }
+    var confirmClearTools by remember { mutableStateOf(false) }
+    LaunchedEffect(toolVersion, refresh) { toolCount = engine.toolEvents.load().size }
 
     LazyColumn(Modifier.fillMaxWidth()) {
         item(key = "journal") {
@@ -63,6 +67,19 @@ fun ResultsScreen(engine: AcquisitionEngine) {
                     if (journalCount > 0) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ActionButton(onClick = { share(context, listOf(engine.journal.file)) }, compact = true) { Text(stringResource(R.string.res_share_csv)) }
                         ActionButton(onClick = { confirmClearJournal = true }, compact = true) { Text(stringResource(R.string.action_clear)) }
+                    }
+                }
+            }
+        }
+        item(key = "tools") {
+            Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.res_tool_results), fontWeight = FontWeight.SemiBold)
+                    Text(pluralStringResource(R.plurals.res_tool_count, toolCount, toolCount),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (toolCount > 0) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ActionButton(onClick = { share(context, listOf(engine.toolEvents.file)) }, compact = true) { Text(stringResource(R.string.res_share_csv)) }
+                        ActionButton(onClick = { confirmClearTools = true }, compact = true) { Text(stringResource(R.string.action_clear)) }
                     }
                 }
             }
@@ -97,6 +114,16 @@ fun ResultsScreen(engine: AcquisitionEngine) {
                 }
             }
         }
+    }
+
+    if (confirmClearTools) {
+        AlertDialog(
+            onDismissRequest = { confirmClearTools = false },
+            title = { Text(stringResource(R.string.res_clear_tools_title)) },
+            text = { Text(pluralStringResource(R.plurals.res_tool_count, toolCount, toolCount)) },
+            confirmButton = { ActionButton(onClick = { engine.tools.clearEvents(); confirmClearTools = false; refresh++ }, emphasis = true) { Text(stringResource(R.string.action_clear)) } },
+            dismissButton = { ActionButton(onClick = { confirmClearTools = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
     }
 
     if (confirmClearJournal) {

@@ -22,6 +22,8 @@ data class AppSettings(
     val applyNonlinearity: Boolean = true,
     val displayMode: DisplayMode = DisplayMode.COUNTS,
     val useSimulator: Boolean = false,
+    /** Which spectrometer the simulator imitates (its wavelength range decides which tools apply). */
+    val simModel: com.rfsat.pocketspectro.sim.SimModel = com.rfsat.pocketspectro.sim.SimModel.NIR,
     // Logging / sequence (Pi "Acquisition Control")
     val sequenceIntervalSec: Double = 5.0, // 0 = every spectrum
     val maxAcquisitions: Int = 0, // 0 = unlimited
@@ -65,6 +67,7 @@ class SettingsStore(context: Context) {
             applyNonlinearity = prefs.getBoolean("nl", d.applyNonlinearity),
             displayMode = enumOr(prefs.getString("displayMode", null), d.displayMode),
             useSimulator = prefs.getBoolean("sim", d.useSimulator),
+            simModel = enumOr(prefs.getString("simModel", null), d.simModel),
             sequenceIntervalSec = prefs.getFloat("seqInterval", d.sequenceIntervalSec.toFloat()).toDouble(),
             maxAcquisitions = prefs.getInt("maxAcq", d.maxAcquisitions),
             saveMode = enumOr(prefs.getString("saveMode", null), d.saveMode),
@@ -81,6 +84,7 @@ class SettingsStore(context: Context) {
                 algorithm = enumOr(prefs.getString("fireAlg", null), f.algorithm),
                 baseline = enumOr(prefs.getString("fireBase", null), f.baseline),
                 confirmFrames = prefs.getInt("fireConfirm", f.confirmFrames),
+                avoidOxygenBand = prefs.getBoolean("fireAvoidO2", f.avoidOxygenBand),
             ),
             fireUseDarkCorrected = prefs.getBoolean("fireDark", d.fireUseDarkCorrected),
             alarmSound = prefs.getBoolean("alarmSound", d.alarmSound),
@@ -105,6 +109,7 @@ class SettingsStore(context: Context) {
             .putBoolean("nl", s.applyNonlinearity)
             .putString("displayMode", s.displayMode.name)
             .putBoolean("sim", s.useSimulator)
+            .putString("simModel", s.simModel.name)
             .putFloat("seqInterval", s.sequenceIntervalSec.toFloat())
             .putInt("maxAcq", s.maxAcquisitions)
             .putString("saveMode", s.saveMode.name)
@@ -120,6 +125,7 @@ class SettingsStore(context: Context) {
             .putString("fireAlg", s.fire.algorithm.name)
             .putString("fireBase", s.fire.baseline.name)
             .putInt("fireConfirm", s.fire.confirmFrames)
+            .putBoolean("fireAvoidO2", s.fire.avoidOxygenBand)
             .putBoolean("fireDark", s.fireUseDarkCorrected)
             .putBoolean("alarmSound", s.alarmSound)
             .putBoolean("alarmVibe", s.alarmVibrate)

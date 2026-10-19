@@ -73,6 +73,10 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
     var events by remember { mutableStateOf(emptyList<FireEvent>()) }
     var tracks by remember { mutableStateOf(emptyList<SessionTrack>()) }
     var selected by remember { mutableStateOf<FireEvent?>(null) }
+    var selectedTool by remember { mutableStateOf<com.rfsat.pocketspectro.data.ToolEvent?>(null) }
+    var toolEvents by remember { mutableStateOf(emptyList<com.rfsat.pocketspectro.data.ToolEvent>()) }
+    val toolVersion by engine.tools.eventsVersion.collectAsState()
+    LaunchedEffect(toolVersion) { toolEvents = withContext(Dispatchers.IO) { engine.toolEvents.load() } }
     var fitKey by remember { mutableIntStateOf(0) }
     var recenterKey by remember { mutableIntStateOf(0) }
 
@@ -85,12 +89,13 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
 
     Box(Modifier.fillMaxSize()) {
         if (isRobolectric) {
-            MapPreview(s.mapLayer, tracks, events, selected, Modifier.fillMaxSize())
+            MapPreview(s.mapLayer, tracks, events, selected, Modifier.fillMaxSize(), toolEvents)
         } else {
             EventMap(
                 layer = s.mapLayer, tracks = tracks, events = events, selected = selected, own = fix,
-                fitKey = fitKey, recenterKey = recenterKey, onEventTap = { selected = it },
+                fitKey = fitKey, recenterKey = recenterKey, onEventTap = { selected = it; selectedTool = null },
                 modifier = Modifier.fillMaxSize(),
+                toolEvents = toolEvents, onToolTap = { selectedTool = it; selected = null },
             )
         }
 
@@ -105,13 +110,15 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
             Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
                 Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                     Text(pluralStringResource(R.plurals.map_detections, events.size, events.size) + " · " +
-                        pluralStringResource(R.plurals.map_tracks, tracks.size, tracks.size),
+                        pluralStringResource(R.plurals.map_tracks, tracks.size, tracks.size) +
+                        (if (toolEvents.isNotEmpty()) " · " + pluralStringResource(R.plurals.map_tool_results, toolEvents.size, toolEvents.size) else ""),
                         style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         LegendIcon(R.drawable.ic_map_flame, stringResource(R.string.map_legend_detection))
                         if (events.any { it.isSimulated() }) LegendIcon(R.drawable.ic_map_flame_sim, stringResource(R.string.map_legend_simulated))
                         LegendDot(Color(0xFF1E88E5), stringResource(R.string.map_legend_track))
                         LegendDot(Color(0xFF1565C0), stringResource(R.string.map_legend_you))
+                        if (toolEvents.isNotEmpty()) LegendDot(Color(0xFF8BC34A), stringResource(R.string.map_legend_tools))
                     }
                 }
             }
@@ -122,7 +129,7 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
             SmallFloatingActionButton(onClick = { recenterKey++ }, modifier = Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(12.dp))) { Icon(Icons.Filled.MyLocation, stringResource(R.string.map_my_position)) }
         }
 
-        if (events.isEmpty() && tracks.isEmpty()) {
+        if (events.isEmpty() && tracks.isEmpty() && toolEvents.isEmpty()) {
             Surface(Modifier.align(Alignment.Center).padding(24.dp), shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)) {
                 Text(stringResource(R.string.map_empty),
@@ -135,6 +142,7 @@ fun MapScreen(engine: AcquisitionEngine, initialSelected: Int? = null) {
             LaunchedEffect(e) { spectrum = withContext(Dispatchers.IO) { engine.journal.loadSpectrum(e) } }
             EventCard(e, spectrum, onClose = { selected = null }, Modifier.align(Alignment.BottomCenter))
         }
+        selectedTool?.let { e -> ToolEventCard(e, onClose = { selectedTool = null }, Modifier.align(Alignment.BottomCenter)) }
     }
 }
 
@@ -218,6 +226,30 @@ private fun EventCard(e: FireEvent, spectrum: Pair<DoubleArray, DoubleArray>?, o
     }
 }
 
+/** A result posted by one of the tools. */
+@Composable
+private fun ToolEventCard(e: com.rfsat.pocketspectro.data.ToolEvent, onClose: () -> Unit, modifier: Modifier) {
+    val tool = com.rfsat.pocketspectro.tools.ToolId.entries.firstOrNull { it.name == e.tool }
+    Surface(modifier.fillMaxWidth().padding(10.dp), shape = RoundedCornerShape(14.dp), tonalElevation = 3.dp, shadowElevation = 6.dp) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(18.dp).background(Color(android.graphics.Color.parseColor(e.colour)), RoundedCornerShape(50)))
+                Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                    Text(tool?.let { stringResource(it.titleRes) } ?: e.tool, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Text(SimpleDateFormat("d MMM yyyy, HH:mm:ss", androidx.core.os.ConfigurationCompat.getLocales(androidx.compose.ui.platform.LocalConfiguration.current)[0] ?: Locale.US).format(Date(e.timeMs)),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                androidx.compose.material3.OutlinedIconButton(onClick = onClose, border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant)) { Icon(Icons.Filled.Close, stringResource(R.string.action_close)) }
+            }
+            Text(e.label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+            if (e.detail.isNotBlank()) Text(e.detail.replace("; ", "\n"), style = MaterialTheme.typography.bodySmall)
+            KeyValue(stringResource(R.string.map_position), "%.6f, %.6f".format(Locale.US, e.latitude, e.longitude) +
+                (e.accuracyM?.let { "  ±%.0f m".format(Locale.US, it) } ?: ""))
+            if (e.model.isNotBlank()) KeyValue(stringResource(R.string.home_spectrometer), e.model)
+        }
+    }
+}
+
 @Composable
 private fun ConfidenceBadge(score: Double) {
     if (!score.isFinite()) return
@@ -239,8 +271,9 @@ private fun ConfidenceBadge(score: Double) {
  * Web Mercator at the phone's density and draws the same tracks and markers on top.
  */
 @Composable
-private fun MapPreview(layer: MapLayer, tracks: List<SessionTrack>, events: List<FireEvent>, selected: FireEvent?, modifier: Modifier) {
-    val pts = events.map { it.latitude to it.longitude } + tracks.flatMap { t -> t.points.map { it.latitude to it.longitude } }
+private fun MapPreview(layer: MapLayer, tracks: List<SessionTrack>, events: List<FireEvent>, selected: FireEvent?, modifier: Modifier,
+                       toolEvents: List<com.rfsat.pocketspectro.data.ToolEvent> = emptyList()) {
+    val pts = events.map { it.latitude to it.longitude } + toolEvents.map { it.latitude to it.longitude } + tracks.flatMap { t -> t.points.map { it.latitude to it.longitude } }
     var tiles by remember { mutableStateOf<Map<Triple<Int, Int, Int>, androidx.compose.ui.graphics.ImageBitmap>>(emptyMap()) }
     var viewSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val flame = androidx.compose.ui.res.painterResource(R.drawable.ic_map_flame)
@@ -273,6 +306,10 @@ private fun MapPreview(layer: MapLayer, tracks: List<SessionTrack>, events: List
             val path = Path()
             tr.points.forEachIndexed { i, pt -> val o = p(pt.latitude, pt.longitude); if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y) }
             drawPath(path, Color(0xD91E88E5), style = Stroke(width = 3.5f * density))
+        }
+        for (e in toolEvents) {
+            val o = p(e.latitude, e.longitude)
+            drawCircle(Color.White, 9f * density, o); drawCircle(Color(android.graphics.Color.parseColor(e.colour)), 7f * density, o)
         }
         selected?.let { drawCircle(Color(0xFFFFC107), 21f * density, p(it.latitude, it.longitude), style = Stroke(width = 4f * density)) }
         val sz = 30f * density

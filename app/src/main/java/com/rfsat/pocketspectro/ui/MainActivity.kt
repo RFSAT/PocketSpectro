@@ -29,7 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
@@ -211,7 +211,7 @@ class MainActivity : ComponentActivity() {
 enum class Tab(@StringRes val label: Int, val icon: ImageVector) {
     HOME(R.string.tab_home, Icons.Filled.Home),
     LIVE(R.string.tab_live, Icons.Filled.ShowChart),
-    FIRE(R.string.tab_fire, Icons.Filled.LocalFireDepartment),
+    TOOLS(R.string.tab_tools, Icons.Filled.Science),
     MAP(R.string.tab_map, Icons.Filled.Map),
     LOG(R.string.tab_log, Icons.Filled.ListAlt),
     SETUP(R.string.tab_setup, Icons.Filled.Settings),
@@ -228,15 +228,14 @@ internal fun AppRoot(
     showExitDialog: Boolean = false,
     initialLogSessions: Boolean = false,
     initialMapSelection: Int? = null,
+    initialTool: com.rfsat.pocketspectro.tools.ToolId? = null,
 ) {
     var tabName by rememberSaveable { mutableStateOf(Tab.entries[initialTab].name) }
     var confirmExit by remember { mutableStateOf(showExitDialog) }
     val conn by engine.connection.collectAsState()
     val frame by engine.frame.collectAsState()
     val armed by engine.fireArmed.collectAsState()
-    // The Fire tab exists only while an STS-NIR (or the simulator) is connected.
-    val fireCapable = (conn as? Connection.Ready)?.info?.fireCapable == true
-    val tabs = Tab.entries.filter { it != Tab.FIRE || fireCapable }
+    val tabs = Tab.entries
     val tab = tabs.firstOrNull { it.name == tabName } ?: Tab.HOME
     val fireAlarm = armed && frame?.fireConfirmed == true
     val snack = remember { SnackbarHostState() }
@@ -294,13 +293,13 @@ internal fun AppRoot(
         }
         Box(Modifier.fillMaxSize().padding(pad)) {
             val ready = conn is Connection.Ready
-            if (!ready && tab in setOf(Tab.LIVE, Tab.FIRE)) {
+            if (!ready && tab == Tab.LIVE) {
                 NotConnected(conn, onReconnect)
             } else {
                 when (tab) {
                     Tab.HOME -> HomeScreen(engine, onOpenTab = { tabName = it.name }, onReconnect = onReconnect)
                     Tab.LIVE -> LiveScreen(engine)
-                    Tab.FIRE -> FireScreen(engine)
+                    Tab.TOOLS -> ToolsTab(engine, onReconnect, initialTool)
                     Tab.MAP -> MapScreen(engine, initialMapSelection)
                     Tab.LOG -> LogTab(engine, onRequestLocation, initialSessions = initialLogSessions)
                     Tab.SETUP -> SetupScreen(engine, onReconnect)

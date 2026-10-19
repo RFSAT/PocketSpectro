@@ -10,7 +10,7 @@ It started as the port of the Raspberry Pi Zero W "Wi-Fi STS-NIR" web server (20
 Apache/PHP served the UI and a C++ daemon talked to the spectrometer. On the phone, the app talks to the
 spectrometer itself and shows the UI on the phone screen.
 
-RFSAT Ltd. Version 1.3.0 (build 10300).
+RFSAT Ltd. Version 1.4.0 (build 10400).
 
 ## Hardware
 
@@ -48,7 +48,7 @@ analysis runs.
 |---|---|
 | Home | Connection status and quick actions, app description, RFSAT and hardware details, spectrometer support list |
 | Live | Live spectrum (counts, absorbance, %T/%R), run/stop/single, integration, averaging, boxcar, dark (manual or built-in shutter) and reference |
-| Fire | (STS-NIR only) K I doublet detector with status banner, zoomed chart (line windows red, continuum flanks green), alarm (sound/vibration), presets |
+| Tools | The measuring tools (see below); Fire detection is one of them |
 | Map | Fire detections (flame icons; grey for simulated ones) from the detection journal and survey tracks (blue) of logged sessions on a MapLibre map with Street / Satellite / Terrain layers, as in DBM; tap a detection for its details |
 | Log | **Recording**: timed logging like the Pi's Acquisition Control (interval, 0 = every spectrum; max count; single CSV or one file per spectrum; GPS tagging). **Sessions**: the fire detection journal and the logged sessions; open, share or delete files |
 | Setup | Source (USB / simulator), device info and calibration, acquisition, binning, nonlinearity, fire-detection parameters |
@@ -59,6 +59,33 @@ Play review. It can add a sample with absorption bands (Setup) and inject fire i
 Simulated fire incidents): manually, as a timed burst or a flame held on, or at random with a set mean
 interval, duration and strength. Detections from simulated incidents go through the normal detector,
 alarm, journal and map, where they are titled "Fire detection (simulated)".
+
+## Tools
+
+Each tool declares the wavelength range it needs; tools the connected unit cannot serve are greyed out
+with the range they need. With the simulator (Setup, or "Try with the simulator" on the Tools tab) the
+simulated model (STS-NIR / STS-VIS / STS-UV) can be switched on the Tools list, and every tool has a
+**Simulation** panel choosing what the simulated probe looks at, so each tool can be evaluated before
+buying hardware. While a white reference or blank is stored, the simulator shows the white tile or the
+blank cuvette by itself.
+
+| Tool | What it computes | Code |
+|---|---|---|
+| Fire detection | K I doublet above the local continuum, confidence, alarm, journal and map | `proc/FireDetector.kt` |
+| Emission lines | Presets (flame tests, Hg-Ar lamp, lasers) or custom lines: centre, shift, FWHM, % above continuum, S/N; alarm and map events | `tools/EmissionLines.kt` |
+| Vegetation and crops | NDVI, red-edge position (linear interpolation), CIre, WBI (900/970), PRI where covered; GPS survey points coloured by NDVI on the map | `tools/Vegetation.kt` |
+| Spectral match | Library of reference spectra (`files/library/*.csv`); score = 1 − 5·RMS residual / level after scaling the library spectrum to the unknown | `tools/SpectralLibrary.kt` |
+| Concentration | Beer–Lambert calibration line from standards (slope, intercept, R²) and the unknown's concentration | `tools/Quantitative.kt` |
+| Colour | CIE XYZ / L\*a\*b\* under D65 (2° observer, Wyman 2013 CMF fit), sRGB swatch, CIEDE2000 against a standard | `tools/Colorimetry.kt` |
+| Light source / LED | Peak, FWHM, centroid, xy, CCT (McCamy), PAR photon fraction; response correction from a lamp of known temperature; lux and PPFD after scaling to a lux meter | `tools/Quantitative.kt` |
+| Time series / kinetics | Absorbance, ratio or counts at one wavelength against time; first-order fit (k, half-life, R²); CSV export | `tools/Quantitative.kt` |
+
+Results saved with "Save to map", vegetation survey points and emission alarms go to
+`files/events/tool_events.csv` and appear on the Map as coloured dots (tap for details).
+
+The fire detector now keeps its left continuum flank below the atmospheric O2 A band (759–765 nm,
+Setup → "Skip the oxygen band"): in simulated daylight the old flank lifted the K I lines to +5 / +9 %
+above the continuum with no flame, close to the 10 % threshold.
 
 ## Processing chain
 

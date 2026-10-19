@@ -13,8 +13,6 @@
     <string name="tab_home">Home</string>
     <!-- Bottom navigation tab: live spectrum. Keep very short. -->
     <string name="tab_live">Live</string>
-    <!-- Bottom navigation tab: fire detection. Keep very short. -->
-    <string name="tab_fire">Fire</string>
     <!-- Bottom navigation tab; keep very short. -->
     <string name="tab_map">Map</string>
     <!-- Bottom navigation tab: data logging. Keep very short. -->
@@ -433,4 +431,250 @@
     <string name="log_saving">Saving</string>
     <!-- Map legend: flame icon of a detection from the simulator. Short, lower case. -->
     <string name="map_legend_simulated">simulated</string>
+    <!-- ===== Tools tab ===== -->
+    <!-- Bottom navigation tab with the measuring tools. Keep very short. -->
+    <string name="tab_tools">Tools</string>
+    <string name="tools_intro">Each tool turns the spectrometer into an instrument for one job. A tool is greyed out when the connected spectrometer does not cover the wavelengths it needs. With the simulator, every tool can be tried before buying a spectrometer.</string>
+    <string name="tools_not_connected">No spectrometer connected. Every tool can be tried with the built-in simulator.</string>
+    <string name="tools_try_simulator">Try with the simulator</string>
+    <string name="tools_sim_model">Simulated spectrometer (its range decides which tools apply):</string>
+    <!-- %1$s and %2$s are wavelengths. -->
+    <string name="tools_needs_range">Needs a spectrometer covering %1$s–%2$s nm</string>
+    <string name="tools_unavailable">This tool needs a spectrometer covering %1$s–%2$s nm; the connected one covers %3$s–%4$s nm.</string>
+    <string name="tools_unavailable_sim">With the simulator, pick another simulated model on the Tools list (for example STS-VIS for colour work).</string>
+    <!-- Tool name. -->
+    <string name="tool_fire">Fire detection</string>
+    <!-- Tool name. -->
+    <string name="tool_emission">Emission lines</string>
+    <!-- Tool name. -->
+    <string name="tool_vegetation">Vegetation and crops</string>
+    <!-- Tool name. -->
+    <string name="tool_match">Spectral match</string>
+    <!-- Tool name. -->
+    <string name="tool_concentration">Concentration</string>
+    <!-- Tool name. -->
+    <string name="tool_colour">Colour</string>
+    <!-- Tool name. -->
+    <string name="tool_light">Light source / LED</string>
+    <!-- Tool name. -->
+    <string name="tool_kinetics">Time series / kinetics</string>
+    <string name="tool_fire_summary">Potassium (K I) flame emission at 766/770 nm, with alarm and a map of detections.</string>
+    <string name="tool_emission_summary">Tracks chosen emission lines (flame tests, lamps, lasers): wavelength, strength and width, with an optional alarm.</string>
+    <string name="tool_vegetation_summary">NDVI, red-edge position and water index of leaves or canopy; a GPS survey drawn on the map.</string>
+    <string name="tool_match_summary">Identifies a sample by comparing its spectrum with a library you build: genuine or fake, material sorting.</string>
+    <string name="tool_concentration_summary">Beer–Lambert: calibrate with standards, then read the concentration of an unknown sample.</string>
+    <string name="tool_colour_summary">CIE L*a*b* colour and ΔE₀₀ against a stored standard, for quality control and ripeness.</string>
+    <string name="tool_light_summary">Peak, width, chromaticity and colour temperature of LEDs and lamps; lux and PAR with a reference meter.</string>
+    <string name="tool_kinetics_summary">One value against time: reaction rates, drying, fading; first-order rate fit and CSV export.</string>
+    <string name="tool_fire_needs">Needs: a near-infrared unit (STS-NIR, ST-NIR). No accessories.</string>
+    <string name="tool_emission_needs">Needs: any unit, with the input or a fibre pointed at the source.</string>
+    <string name="tool_vegetation_needs">Needs: a unit covering red and near-infrared (660–800 nm), a white reference panel, daylight or a lamp.</string>
+    <string name="tool_match_needs">Needs: any unit, a reflection probe or lamp, and a white tile for reflectance.</string>
+    <string name="tool_concentration_needs">Needs: any unit, a cuvette holder, a light source and standards.</string>
+    <string name="tool_colour_needs">Needs: a visible-range unit (380–780 nm), a white tile and a lamp or reflection probe.</string>
+    <string name="tool_light_needs">Needs: any unit; colour figures need the visible range. A lamp of known temperature corrects the response.</string>
+    <string name="tool_kinetics_needs">Needs: any unit; a cuvette holder and light source for absorbance.</string>
+    <!-- Button: record the current result with its GPS position. -->
+    <string name="tool_save_result">Save to map</string>
+    <string name="tool_save_hint">Records this result with the GPS position.</string>
+    <string name="tool_save_no_gps">Waiting for a GPS fix…</string>
+    <string name="tool_saved">Saved; shown on the Map.</string>
+    <!-- Dark / reference panel of the tools -->
+    <string name="ref_title">Dark and reference</string>
+    <string name="ref_help_white">Store a dark, then point the probe at the white reference tile or panel under the same light. Reflectance = sample / white.</string>
+    <string name="ref_help_blank">Store a dark, then measure the blank (cuvette with solvent only). Absorbance = −log10(sample / blank).</string>
+    <string name="ref_help_dark">Store a dark (shutter closed or input covered) so the counts are the true signal.</string>
+    <string name="ref_white">White reference</string>
+    <!-- The cuvette with solvent only. -->
+    <string name="ref_blank">Blank</string>
+    <string name="ref_stored">stored</string>
+    <string name="ref_missing">missing</string>
+    <string name="ref_both_white">Dark + white reference</string>
+    <string name="ref_both_blank">Dark + blank</string>
+    <string name="ref_store_white">Store white</string>
+    <string name="ref_store_blank">Store blank</string>
+    <!-- Simulator controls inside the tools -->
+    <string name="sim_panel_title">Simulation</string>
+    <string name="sim_panel_help">Simulator only: choose what the simulated probe looks at. While a white reference or blank is stored, the simulator shows the white tile or blank cuvette by itself.</string>
+    <!-- %1$s is a chemical symbol such as Na. -->
+    <string name="sim_flame">Flame %1$s</string>
+    <string name="sim_hg_lamp">Hg-Ar lamp</string>
+    <string name="sim_laser">Laser %1$s nm</string>
+    <string name="sim_led_cool">LED cool white</string>
+    <string name="sim_led_warm">LED warm white</string>
+    <!-- %1$s is a colour name. -->
+    <string name="sim_led_colour">LED %1$s</string>
+    <string name="sim_led_grow">LED grow light</string>
+    <string name="sim_led_ir">IR LED %1$s nm</string>
+    <string name="sim_lamp_a">Halogen lamp 2856 K</string>
+    <string name="sim_lamp_tip">Choose the halogen lamp and tap “Use as lamp” above to calibrate the response, then switch to an LED.</string>
+    <string name="sim_daylight">Daylight</string>
+    <string name="sim_halogen">Halogen lamp</string>
+    <string name="sim_t_white">White tile</string>
+    <string name="sim_t_leaf">Healthy leaf</string>
+    <string name="sim_t_leaf_stressed">Stressed leaf</string>
+    <string name="sim_t_dry_grass">Dry grass</string>
+    <string name="sim_t_soil">Bare soil</string>
+    <string name="sim_t_transect">Drive past fields</string>
+    <string name="sim_t_paper">Paper</string>
+    <string name="sim_t_cotton">Cotton</string>
+    <string name="sim_t_polyester">Polyester</string>
+    <string name="sim_t_polyethylene">Polyethylene</string>
+    <string name="sim_t_nylon">Nylon</string>
+    <string name="sim_t_tomato_unripe">Tomato, unripe</string>
+    <string name="sim_t_tomato_ripe">Tomato, ripe</string>
+    <string name="colour_red">Red</string>
+    <string name="colour_orange">Orange</string>
+    <string name="colour_yellow">Yellow</string>
+    <string name="colour_green">Green</string>
+    <string name="colour_blue">Blue</string>
+    <string name="colour_grey">Grey</string>
+    <string name="sim_cuvette_help">Simulated cuvette with a blue dye (absorption peak 664 nm). Pick a concentration for the standards, or an unknown sample.</string>
+    <string name="sim_blank">Blank</string>
+    <string name="sim_unknown">Unknown sample</string>
+    <string name="sim_true_value">(true value %1$s mg/L)</string>
+    <string name="sim_reaction_help">Starts a simulated bleaching reaction in the cuvette: the dye fades with first-order rate k.</string>
+    <string name="sim_c0">Start concentration</string>
+    <string name="sim_start_reaction">Start reaction</string>
+    <string name="sim_reset_reaction">Reset</string>
+    <!-- Emission lines tool -->
+    <!-- State button, green. -->
+    <string name="em_alarm_on">Line alarm ON</string>
+    <!-- State button, red. -->
+    <string name="em_alarm_off">Line alarm OFF</string>
+    <string name="em_lines">Lines</string>
+    <string name="em_preset_flame">Flame tests</string>
+    <string name="em_preset_lamp">Hg-Ar lamp</string>
+    <string name="em_preset_laser">Lasers</string>
+    <string name="em_preset_custom">Custom</string>
+    <string name="em_custom_label">Lines, e.g. Na 589.3, H 656.3</string>
+    <string name="em_apply">Apply</string>
+    <string name="em_none_in_range">None of these lines is inside this spectrometer\'s range.</string>
+    <!-- %1$s measured centre, %2$s shift from nominal (nm), %3$s percent above continuum, %4$s signal-to-noise. -->
+    <string name="em_line_value">%1$s nm (%2$s) · %3$s %% · S/N %4$s</string>
+    <string name="em_min_snr">Min. S/N</string>
+    <string name="em_help">Each line is measured above a straight continuum through flanks 3–9 nm either side. A line counts as present when it is above the threshold and the signal-to-noise minimum. With the alarm on, a new line sounds the alarm and is put on the map.</string>
+    <string name="em_history">Strongest line, recent frames</string>
+    <!-- Vegetation tool -->
+    <string name="veg_needs_ref">Store a dark and a white reference (Dark and reference, below) to see the indices.</string>
+    <string name="veg_none">Bare / no vegetation</string>
+    <string name="veg_sparse">Sparse or stressed</string>
+    <string name="veg_moderate">Moderate</string>
+    <string name="veg_dense">Dense, healthy</string>
+    <string name="veg_indices">Indices</string>
+    <string name="veg_ndvi_bands">%1$s (red %2$s nm, NIR %3$s nm)</string>
+    <string name="veg_rep">Red-edge position</string>
+    <string name="veg_cire">Chlorophyll index (red edge)</string>
+    <string name="veg_wbi">Water band index</string>
+    <string name="veg_pri">Photochemical index (PRI)</string>
+    <string name="veg_help">NDVI above about 0.6 means dense green cover; stress lowers NDVI and moves the red edge to shorter wavelengths. The water index (900/970 nm) falls as leaves dry. Indices are shown only where the spectrometer covers their bands.</string>
+    <string name="veg_survey">Survey</string>
+    <string name="veg_survey_help">Records NDVI with the GPS position at the set interval while you walk or drive; the points appear on the Map, coloured from brown (bare) to green (dense).</string>
+    <string name="veg_survey_on">Survey ON</string>
+    <string name="veg_survey_off">Survey OFF</string>
+    <string name="veg_points">Points recorded</string>
+    <!-- Spectral match tool -->
+    <string name="match_result">Result</string>
+    <!-- %1$s library name, %2$s similarity score. -->
+    <string name="match_yes">%1$s (%2$s %%)</string>
+    <string name="match_no">No match above %1$s %%</string>
+    <string name="match_empty_library">Library empty: add reference spectra below</string>
+    <string name="match_candidates">Closest library spectra</string>
+    <string name="match_threshold">Match threshold</string>
+    <string name="match_help" formatted="false">The score is how much of the measured spectrum the library spectrum explains after scaling it (brightness does not matter); 100 % is identical. Build the library from known-good samples measured the same way.</string>
+    <string name="match_library">Library</string>
+    <string name="match_lib_help_refl">Saving reflectance (sample / white reference).</string>
+    <string name="match_lib_help_counts">No white reference stored: saving raw counts, which also include the lamp and detector. Reflectance is more robust.</string>
+    <string name="match_name">Name</string>
+    <string name="match_add">Add to library</string>
+    <string name="match_overlay_legend">Dashed: %1$s (scaled)</string>
+    <string name="match_ref_tip">Tip: store a white reference so samples are compared as reflectance.</string>
+    <string name="match_demo_library">Add demo library</string>
+    <!-- Concentration tool -->
+    <string name="conc_needs_blank">Store a dark and a blank (Dark and reference, below) to measure absorbance.</string>
+    <string name="conc_absorbance_at">Absorbance at %1$s nm</string>
+    <string name="conc_result">Concentration</string>
+    <string name="conc_out_of_range">Outside the range of the standards: the result is an extrapolation.</string>
+    <string name="conc_method">Method</string>
+    <string name="conc_wavelength">Wavelength</string>
+    <string name="conc_use_peak">Use peak</string>
+    <string name="conc_units">Units</string>
+    <string name="conc_standards">Standards</string>
+    <string name="conc_standards_help">Put each standard in the holder, enter its concentration and tap Add standard. Two or more give a calibration line (A = slope × c + intercept).</string>
+    <string name="conc_standard_value">Standard</string>
+    <string name="conc_add_standard">Add standard</string>
+    <string name="conc_fit">Calibration</string>
+    <string name="conc_fit_value">slope %1$s, intercept %2$s, R² %3$s</string>
+    <string name="conc_need_two">Add at least two standards of different concentration.</string>
+    <string name="conc_clear_standards">Clear standards</string>
+    <string name="conc_sample">Sample</string>
+    <string name="conc_sample_name">Sample name</string>
+    <!-- Colour tool -->
+    <string name="colour_needs_white">Store a dark and a white reference (Dark and reference, below) to measure colour.</string>
+    <string name="colour_chroma_hue">Chroma %1$s, hue %2$s°</string>
+    <string name="colour_conditions">D65, 2° observer</string>
+    <string name="colour_standard">Standard</string>
+    <string name="colour_no_standard">No standard stored. Measure the reference sample and tap Set as standard.</string>
+    <!-- Colour within tolerance. Short, upper case where usual. -->
+    <string name="colour_pass">PASS</string>
+    <string name="colour_fail">FAIL</string>
+    <string name="colour_de_scale">ΔE₀₀: below 1 not visible, 1–2 close, 2–5 noticeable, above 5 clearly different.</string>
+    <string name="colour_set_standard">Set as standard</string>
+    <string name="colour_tolerance">Tolerance</string>
+    <!-- Light source tool -->
+    <string name="light_peak">Peak</string>
+    <string name="light_cct">Colour temperature</string>
+    <string name="light_metrics">Measurements</string>
+    <string name="light_fwhm">Width (FWHM)</string>
+    <string name="light_centroid">Centroid</string>
+    <string name="light_xy">Chromaticity (CIE 1931)</string>
+    <string name="light_par">Photons in PAR (400–700 nm)</string>
+    <string name="light_lux">Illuminance</string>
+    <string name="light_ppfd">PPFD (PAR photon flux)</string>
+    <string name="light_corrected">Corrected for the detector response.</string>
+    <string name="light_uncorrected">Uncorrected: includes the detector\'s own spectral response, so colour figures are approximate. Calibrate with a lamp below.</string>
+    <string name="light_calibration">Calibration</string>
+    <string name="light_calibration_help">Point the input at a halogen lamp of known colour temperature (for example 2856 K, CIE illuminant A) and tap Use as lamp: the detector response is then divided out of every measurement.</string>
+    <string name="light_lamp_k">Lamp temperature</string>
+    <string name="light_use_lamp">Use as lamp</string>
+    <string name="light_clear_cal">Clear calibration</string>
+    <string name="light_lux_help">For absolute values, put a lux meter next to the input, enter its reading and tap Set scale (needs the lamp calibration and a cosine corrector).</string>
+    <string name="light_known_lux">Lux meter reads</string>
+    <string name="light_set_scale">Set scale</string>
+    <!-- Time series / kinetics tool -->
+    <string name="kin_quantity">Quantity</string>
+    <string name="kin_now">Now</string>
+    <string name="kin_needs_ref">needs a dark and blank (below)</string>
+    <string name="kin_recording_on">Recording ON</string>
+    <string name="kin_recording_off">Recording OFF</string>
+    <string name="kin_time_axis">Time (s) since the start of recording; dashed: first-order fit</string>
+    <string name="kin_analysis">Analysis</string>
+    <string name="kin_points">Points</string>
+    <string name="kin_duration">Duration</string>
+    <string name="kin_initial_rate">Initial rate (first 30 s)</string>
+    <string name="kin_k">Rate constant k</string>
+    <string name="kin_half_life">Half-life</string>
+    <string name="kin_help">First-order fit: value = v₀·e^(−kt). Record at a fixed wavelength; the CSV export keeps every point.</string>
+    <!-- Units -->
+    <string name="unit_absorbance">Absorbance</string>
+    <string name="unit_ratio">Ratio (T or R)</string>
+    <string name="unit_reflectance">Reflectance</string>
+    <string name="unit_relative">relative</string>
+    <plurals name="map_tool_results">
+        <item quantity="one">%1$d tool result</item>
+        <item quantity="other">%1$d tool results</item>
+    </plurals>
+    <!-- Map legend: coloured dots of tool results (vegetation survey, matches...). Short, lower case. -->
+    <string name="map_legend_tools">tool results</string>
+    <string name="res_tool_results">Tool results</string>
+    <plurals name="res_tool_count">
+        <item quantity="one">%1$d result with GPS position (vegetation survey, matches, concentrations…), shown on the Map tab</item>
+        <item quantity="other">%1$d results with GPS position (vegetation survey, matches, concentrations…), shown on the Map tab</item>
+    </plurals>
+    <string name="res_clear_tools_title">Clear tool results?</string>
+    <string name="set_sim_model">Simulated spectrometer</string>
+    <!-- %1$s is a model name such as STS-VIS. -->
+    <string name="set_sim_model_value">%1$s (simulated)</string>
+    <string name="set_avoid_o2">Skip the oxygen band (760 nm)</string>
+    <string name="set_avoid_o2_detail">Keeps the continuum flank below the atmospheric O2 A band, which in daylight sits next to the K I lines. Recommended outdoors.</string>
 </resources>

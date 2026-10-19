@@ -188,11 +188,24 @@ object CsvTable {
     fun read(f: File): List<Map<String, String>> {
         val lines = f.readLines().filter { it.isNotBlank() }
         if (lines.isEmpty()) return emptyList()
-        val head = lines.first().split(',')
+        val head = split(lines.first())
         return lines.drop(1).map { line ->
-            val cells = line.split(',')
+            val cells = split(line)
             head.indices.associate { head[it] to cells.getOrElse(it) { "" } }
         }
+    }
+
+    /** Splits one CSV line, honouring double-quoted cells (which may contain commas). */
+    fun split(line: String): List<String> {
+        if ('"' !in line) return line.split(',')
+        val out = ArrayList<String>(); val cur = StringBuilder(); var quoted = false
+        for (ch in line) when {
+            ch == '"' -> quoted = !quoted
+            ch == ',' && !quoted -> { out += cur.toString(); cur.clear() }
+            else -> cur.append(ch)
+        }
+        out += cur.toString()
+        return out
     }
 
     /** Reads only time and position columns, cheap even for wide spectra.csv rows. */

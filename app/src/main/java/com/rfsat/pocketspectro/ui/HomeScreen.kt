@@ -105,7 +105,7 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
                 }.joinToString(", "))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ActionButton(onClick = { engine.setRunning(true); onOpenTab(Tab.LIVE) }, emphasis = true) { Text(stringResource(R.string.home_btn_live)) }
-                    if (ready.info.fireCapable) ActionButton(onClick = { onOpenTab(Tab.FIRE) }) { Text(stringResource(R.string.home_btn_fire)) }
+                    ActionButton(onClick = { onOpenTab(Tab.TOOLS) }) { Text(stringResource(R.string.tab_tools)) }
                 }
             } else {
                 Text(stringResource(R.string.home_plug_help),

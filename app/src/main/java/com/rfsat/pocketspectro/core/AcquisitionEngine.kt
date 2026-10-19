@@ -2,6 +2,7 @@ package com.rfsat.pocketspectro.core
 
 import com.rfsat.pocketspectro.R
 import com.rfsat.pocketspectro.labelRes
+import com.rfsat.pocketspectro.tools.defaultScene
 import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
@@ -65,6 +66,8 @@ data class Frame(
     val integrationUs: Long,
     val fire: FireDetector.Result?,
     val fireConfirmed: Boolean,
+    /** Stored reference after the same boxcar as [counts] (null when none or a different pixel count). */
+    val reference: DoubleArray? = null,
 )
 
 data class LogState(
@@ -133,6 +136,28 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
 
     fun clearJournal() { journal.clear(); _journalVersion.value++ }
 
+    /** Results the tools post with a position (vegetation survey, matches, concentrations...). */
+    val toolEvents by lazy { com.rfsat.pocketspectro.data.ToolEventJournal(filesRoot) }
+    /** Background work of the tools (survey recording, line alarm, kinetics). */
+    val tools by lazy {
+        com.rfsat.pocketspectro.tools.ToolHub(context, toolEvents) { on ->
+            if (on) alarm.trigger(store.value.alarmSound, store.value.alarmVibrate) else if (!_fireArmed.value) alarm.stop()
+        }
+    }
+
+    /** Opens a tool (null = the list); with the simulator, shows that tool's demonstration scene. */
+    fun openTool(t: com.rfsat.pocketspectro.tools.ToolId?) {
+        tools.setActive(t)
+        val sim = simulator ?: return
+        if (t != null) sim.scene = t.defaultScene(sim.model, System.currentTimeMillis())
+    }
+
+    /** Simulator only: what the probe looks at. */
+    fun setSimScene(scene: com.rfsat.pocketspectro.sim.SimScene) { simulator?.scene = scene }
+
+    /** Stores a dark with the shutter and then the reference (white tile / blank) in one go. */
+    fun captureDarkAndReference() { darkRequest = true; referenceRequest = true }
+
     // ---- connection ----------------------------------------------------------------------
 
     fun awaitingPermission() { _connection.value = Connection.AwaitingPermission }
@@ -158,12 +183,17 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
         }
     }
 
-    fun connectSimulator(nir: Boolean = true) {
+    fun connectSimulator(model: com.rfsat.pocketspectro.sim.SimModel = store.value.simModel) {
         scope.launch {
             closeDevice()
-            attach(SimulatedSpectrometer(nir = nir))
+            val sim = SimulatedSpectrometer(model = model)
+            tools.active.value?.let { sim.scene = it.defaultScene(model, System.currentTimeMillis()) }
+            attach(sim)
         }
     }
+
+    /** Old call sites: NIR or VIS. */
+    fun connectSimulator(nir: Boolean) = connectSimulator(if (nir) com.rfsat.pocketspectro.sim.SimModel.NIR else com.rfsat.pocketspectro.sim.SimModel.VIS)
 
     /** Called on USB detach or when the user switches source. */
     /** Stops logging and releases the spectrometer before the app exits. */
@@ -347,7 +377,12 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
             _messages.tryEmit(context.getString(R.string.msg_dark_first))
             return
         }
-        val avg = averaged(dev, s.scansToAverage)
+        // Simulator: the probe sees the white tile / blank while the reference is taken.
+        val sim = dev as? SimulatedSpectrometer
+        val shown = sim?.scene
+        val blank = shown?.let { com.rfsat.pocketspectro.tools.blankFor(it) }
+        if (sim != null && blank != null) sim.scene = blank
+        val avg = try { averaged(dev, s.scansToAverage) } finally { if (sim != null && shown != null) sim.scene = shown }
         val nl = dev.info.nonlinearityCoefficients
         val ref = Processing.correctedCounts(avg.mean(), dark.data, nl, s.applyNonlinearity)
         _reference.value = StoredSpectrum(ref, s.integrationUs, avg.count, System.currentTimeMillis())
@@ -382,7 +417,8 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
         if (_fireArmed.value && fire != null) {
             if (confirmed) alarm.trigger(s.alarmSound, s.alarmVibrate) else if (lastFireConfirmed) alarm.stop()
         }
-        if (confirmed && fire != null) {
+        // Detections are journalled while monitoring is on (Monitoring ON on the Fire tool).
+        if (confirmed && fire != null && _fireArmed.value) {
             val fix = if (store.value.gpsTagging) location.current() else null
             try {
                 val ctx = DetectionContext(info.model, info.serial, s.integrationUs, avg.count, s.fire.thresholdPercent,
@@ -402,8 +438,9 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
             timeMs = now, wavelengths = wl, meanRaw = meanRaw, counts = counts, display = display,
             mode = s.displayMode, needsReference = needsRef, darkCorrected = dark != null, nlCorrected = nlApplied,
             maxRaw = avg.maxRaw, saturated = avg.maxRaw >= info.maxCounts, scans = avg.count,
-            integrationUs = s.integrationUs, fire = fire, fireConfirmed = confirmed,
+            integrationUs = s.integrationUs, fire = fire, fireConfirmed = confirmed, reference = ref,
         )
+        _frame.value?.let { fr -> tools.onFrame(fr, if (s.gpsTagging) location.current() else null, info) }
 
         logIfDue(now, s, wl, counts, avg.count, dark != null, nlApplied, fire, confirmed)
     }

@@ -7,6 +7,11 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH).
 
+## 1.4.0 (build 10400)
+- New Tools tab with eight measuring tools: fire detection, emission lines, vegetation and crops (NDVI survey on the map), spectral match, concentration, colour, light source/LED and time series.
+- Every tool works with the simulator (choose STS-NIR, VIS or UV), so it can be tried before buying a spectrometer.
+- Fire detection now ignores the daylight oxygen band next to the potassium lines.
+
 ## 1.3.0 (build 10300)
 - Fire detections now appear on the map as flame icons; simulated ones are grey.
 - Clearer buttons: every button has a visible border, and on/off controls are green when ON and red when OFF.
