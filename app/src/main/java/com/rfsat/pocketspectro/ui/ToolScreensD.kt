@@ -113,7 +113,7 @@ fun TemperatureTool(engine: AcquisitionEngine) {
     val lo = params["temp.lo"] ?: (fr?.wavelengths?.first() ?: 0.0)
     val hi = params["temp.hi"] ?: (fr?.wavelengths?.last() ?: 0.0)
     val r = if (fr != null && fr.darkCorrected && resp != null && !fr.saturated) Pyrometry.fit(fr.wavelengths, fr.counts, resp, lo, hi) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         when {
             fr != null && !fr.darkCorrected -> Note(stringResource(R.string.temp_needs_dark))
@@ -144,8 +144,8 @@ fun TemperatureTool(engine: AcquisitionEngine) {
                 NumberField(stringResource(R.string.temp_to), hi, { engine.tools.setParam("temp.hi", it) }, Modifier.weight(1f), 0, 150.0, 2600.0, "nm")
             }
             Text(stringResource(R.string.temp_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (r != null) SaveResultButton(engine, ToolId.TEMPERATURE, "${f(r.kelvin, 0)} K", r.kelvin, "#E64A19",
-                "%.0f K (%.0f °C); R² %.4f; %.0f-%.0f nm".format(Locale.US, r.kelvin, r.celsius, r.r2, r.fromNm, r.toNm))
+            SaveResultButton(engine, ToolId.TEMPERATURE, if (r != null) SaveSpec("${f(r.kelvin, 0)} K", r.kelvin, "#E64A19",
+                "%.0f K (%.0f °C); R² %.4f; %.0f-%.0f nm".format(Locale.US, r.kelvin, r.celsius, r.r2, r.fromNm, r.toNm)) else null)
         }
         Section(stringResource(R.string.light_calibration)) {
             Text(stringResource(R.string.temp_cal_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -185,7 +185,7 @@ fun FilmTool(engine: AcquisitionEngine) {
     val r by produceState<FilmThickness.Result?>(null, fr, n, sub) {
         value = if (fr != null && refl != null) withContext(Dispatchers.Default) { FilmThickness.measure(fr.wavelengths, refl, n, sub) } else null
     }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (refl == null) Note(stringResource(R.string.film_needs_ref))
         val res = r
@@ -208,8 +208,8 @@ fun FilmTool(engine: AcquisitionEngine) {
             Text(stringResource(R.string.film_substrate), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
             ChipChoices(FilmThickness.Substrate.entries, sub, { stringResource(substrateRes(it)) }) { s -> engine.tools.setParam("film.sub", s.ordinal.toDouble()) }
             Text(stringResource(R.string.film_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (res != null) SaveResultButton(engine, ToolId.FILM, if (res.nm >= 2000) "${f(res.micrometres, 2)} µm" else "${f(res.nm, 0)} nm", res.nm, "#6D4C41",
-                "thickness %.0f nm; n %.3f; %s; fringes %.1f".format(Locale.US, res.nm, n, sub.name, res.fringes))
+            SaveResultButton(engine, ToolId.FILM, if (res != null) SaveSpec(if (res.nm >= 2000) "${f(res.micrometres, 2)} µm" else "${f(res.nm, 0)} nm", res.nm, "#6D4C41",
+                "thickness %.0f nm; n %.3f; %s; fringes %.1f".format(Locale.US, res.nm, n, sub.name, res.fringes)) else null)
         }
         ReferencePanel(engine, RefKind.WHITE)
         SimPanel(engine) {
@@ -241,7 +241,7 @@ fun FilterTool(engine: AcquisitionEngine) {
     val r = if (fr != null && t != null) FilterTest.analyse(fr.wavelengths, t) else null
     val od = if (fr != null && fr.reference != null && fr.darkCorrected && odNm in fr.wavelengths.first()..fr.wavelengths.last())
         FilterTest.opticalDensity(fr.wavelengths, fr.counts, fr.reference, odNm) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (t == null) Note(stringResource(R.string.filt_needs_open))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -260,11 +260,11 @@ fun FilterTool(engine: AcquisitionEngine) {
             KeyValue(stringResource(R.string.filt_od, f(odNm, 0)), od?.let { (if (it.atLimit) "≥ " else "") + f(it.od, 1) } ?: "—", live = true)
             NumberField(stringResource(R.string.filt_od_nm), odNm, { engine.tools.setParam("filter.od", it) }, Modifier.fillMaxWidth(), 0, 150.0, 2600.0, "nm")
             Text(stringResource(R.string.filt_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (r != null) SaveResultButton(engine, ToolId.FILTER, r.luminousPercent?.let { "τv ${f(it, 0)} %" } ?: (r.cutOnNm?.let { "cut-on ${f(it, 0)} nm" } ?: "T ${f(r.meanPercent, 0)} %"),
+            SaveResultButton(engine, ToolId.FILTER, if (r != null) SaveSpec(r.luminousPercent?.let { "τv ${f(it, 0)} %" } ?: (r.cutOnNm?.let { "cut-on ${f(it, 0)} nm" } ?: "T ${f(r.meanPercent, 0)} %"),
                 r.luminousPercent ?: r.meanPercent, "#455A64",
                 listOfNotNull(r.luminousPercent?.let { "tv %.1f %%".format(Locale.US, it) }, r.sunglassCategory?.let { "cat %d".format(it) },
                     r.uv380to400Percent?.let { "T380-400 %.2f %%".format(Locale.US, it) }, r.bluePercent?.let { "blue %.1f %%".format(Locale.US, it) },
-                    r.cutOnNm?.let { "cut-on %.1f nm".format(Locale.US, it) }).joinToString("; "))
+                    r.cutOnNm?.let { "cut-on %.1f nm".format(Locale.US, it) }).joinToString("; ")) else null)
         }
         ReferencePanel(engine, RefKind.OPEN)
         SimPanel(engine) {
@@ -313,7 +313,7 @@ fun PredictTool(engine: AcquisitionEngine) {
     val ft = fit
     val pred = if (ft != null && m != null && x != null) Chemometrics.predict(ft, m, x) else null
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (ratio == null) Note(stringResource(R.string.pred_needs_ref))
         Section(stringResource(R.string.pred_models)) {
@@ -352,8 +352,8 @@ fun PredictTool(engine: AcquisitionEngine) {
                     Text(stringResource(R.string.pred_chart_legend), style = MaterialTheme.typography.labelSmall)
                 }
                 Text(stringResource(R.string.pred_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (pred != null) SaveResultButton(engine, ToolId.PREDICT, "${m.name}: ${f(pred, 2)} ${m.unit}", pred, "#00838F",
-                    "%s %.3f %s; RMSECV %s".format(Locale.US, m.name, pred, m.unit, f(ft?.rmsecv, 3)))
+                SaveResultButton(engine, ToolId.PREDICT, if (pred != null) SaveSpec("${m.name}: ${f(pred, 2)} ${m.unit}", pred, "#00838F",
+                    "%s %.3f %s; RMSECV %s".format(Locale.US, m.name, pred, m.unit, f(ft?.rmsecv, 3))) else null)
             }
             Section(stringResource(R.string.pred_add)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -420,7 +420,7 @@ fun RamanTool(engine: AcquisitionEngine) {
     val matches = if (sp != null) Raman.match(peaks, sp.shift.first()..sp.shift.last(), Raman.LIBRARY + userLib) else emptyList()
     val best = matches.firstOrNull()?.takeIf { it.score >= 0.5 }
     val seenLaser = fr?.let { Raman.laserLine(it.wavelengths, it.counts, laser) }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (fr != null && sp == null) Note(stringResource(R.string.ram_no_range, f(laser, 1)))
         BigValue(stringResource(R.string.ram_result), best?.let { "${it.ref.name} (${f(it.score * 100, 0)} %)" } ?: if (peaks.isEmpty()) "—" else stringResource(R.string.ram_no_match),
@@ -436,8 +436,8 @@ fun RamanTool(engine: AcquisitionEngine) {
                 val mm = matches.getOrNull(k)
                 KeyValue(mm?.ref?.name ?: "—", mm?.let { "${f(it.score * 100, 0)} % · ${it.matched}/${it.total}" } ?: "", live = true)
             }
-            if (best != null) SaveResultButton(engine, ToolId.RAMAN, best.ref.name, best.score * 100, "#6A1B9A",
-                "score %.0f %%; peaks %s cm-1".format(Locale.US, best.score * 100, peaks.take(6).joinToString(" ") { f(it.shift, 0) }))
+            SaveResultButton(engine, ToolId.RAMAN, if (best != null) SaveSpec(best.ref.name, best.score * 100, "#6A1B9A",
+                "score %.0f %%; peaks %s cm-1".format(Locale.US, best.score * 100, peaks.take(6).joinToString(" ") { f(it.shift, 0) })) else null)
         }
         Section(stringResource(R.string.ram_settings)) {
             NumberField(stringResource(R.string.ram_laser), laser, { engine.tools.setParam("raman.laser", it) }, Modifier.fillMaxWidth(), 2, 200.0, 1100.0, "nm")
@@ -480,7 +480,7 @@ fun OliveTool(engine: AcquisitionEngine) {
     val fr = frame
     val abs = fr?.absorbance()
     val r = if (fr != null && abs != null) OliveOil.analyse(fr.wavelengths, abs, c, path) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (abs == null) Note(stringResource(R.string.oil_needs_blank))
         val catColour = when (r?.category) { OliveOil.Category.EXTRA_VIRGIN -> OnGreen; OliveOil.Category.VIRGIN -> WarnAmber; OliveOil.Category.ABOVE_VIRGIN_LIMITS -> OffRed; null -> MaterialTheme.colorScheme.primary }
@@ -492,8 +492,8 @@ fun OliveTool(engine: AcquisitionEngine) {
             KeyValue("K268", r?.let { "${f(it.k268, 3)}   (≤ 0.22 / 0.25)" } ?: "—", live = true)
             KeyValue("ΔK", r?.let { "${"%+.4f".format(Locale.US, it.deltaK)}   (≤ 0.01)" } ?: "—", live = true)
             Text(stringResource(R.string.oil_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (r != null) SaveResultButton(engine, ToolId.OLIVE, stringResource(oilRes(r.category)), r.k232, hex(catColour),
-                "K232 %.2f; K268 %.3f; dK %.4f".format(Locale.US, r.k232, r.k268, r.deltaK))
+            SaveResultButton(engine, ToolId.OLIVE, if (r != null) SaveSpec(stringResource(oilRes(r.category)), r.k232, hex(catColour),
+                "K232 %.2f; K268 %.3f; dK %.4f".format(Locale.US, r.k232, r.k268, r.deltaK)) else null)
         }
         Section(stringResource(R.string.oil_preparation)) {
             Text(stringResource(R.string.oil_prep_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -529,7 +529,7 @@ fun DrinksTool(engine: AcquisitionEngine) {
     val dilution = params["drinks.dilution"] ?: 1.0
     val fr = frame
     val abs = fr?.absorbance()
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Column(Modifier.padding(horizontal = 12.dp)) {
             ChipChoices(Drinks.Kind.entries, kind, { stringResource(when (it) { Drinks.Kind.BEER -> R.string.drk_beer; Drinks.Kind.WINE -> R.string.drk_wine; Drinks.Kind.HONEY -> R.string.drk_honey }) }) {
@@ -583,7 +583,7 @@ fun DrinksTool(engine: AcquisitionEngine) {
                 NumberField(stringResource(R.string.drk_path), path, { engine.tools.setParam("drinks.path.${kind.name}", it) }, Modifier.weight(1f), 1, 0.1, 100.0, "mm")
                 if (kind == Drinks.Kind.BEER) NumberField(stringResource(R.string.drk_dilution), dilution, { engine.tools.setParam("drinks.dilution", it) }, Modifier.weight(1f), 1, 1.0, 100.0, "×")
             }
-            if (label.isNotEmpty()) SaveResultButton(engine, ToolId.DRINKS, label, main, colour, detail)
+            SaveResultButton(engine, ToolId.DRINKS, if (label.isNotEmpty()) SaveSpec(label, main, colour, detail) else null)
         }
         ReferencePanel(engine, RefKind.BLANK)
         SimPanel(engine) {
@@ -645,7 +645,7 @@ fun HealthTool(engine: AcquisitionEngine) {
         }
     }
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (busy != null) Note(stringResource(R.string.hc_running), OnGreen)
         if (failed) Note(stringResource(R.string.hc_failed), OffRed)

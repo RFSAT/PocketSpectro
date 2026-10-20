@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +34,19 @@ import com.rfsat.pocketspectro.R
 import com.rfsat.pocketspectro.core.AcquisitionEngine
 import com.rfsat.pocketspectro.data.ToolEvent
 import com.rfsat.pocketspectro.tools.ToolId
+
+/** What the open tool shows at the end of its page (the related tools); set by the Tools tab. */
+val LocalToolFooter = androidx.compose.runtime.staticCompositionLocalOf<@Composable () -> Unit> { {} }
+
+/** Scrolling page of a tool, ending with the footer (related tools). */
+@Composable
+fun ToolPage(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val footer = LocalToolFooter.current
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+        content()
+        footer()
+    }
+}
 
 /** Acquisition ON/OFF and Single, at the top of every tool. */
 @Composable
@@ -106,17 +122,38 @@ fun BigValue(label: String, value: String, colour: Color = MaterialTheme.colorSc
     }
 }
 
+/** What "Save to map" records: label, value, map colour (#RRGGBB) and detail text. */
+data class SaveSpec(val label: String, val value: Double, val colour: String, val detail: String)
+
 /** Records a result with the current GPS position on the map (Map tab). */
 @Composable
-fun SaveResultButton(engine: AcquisitionEngine, tool: ToolId, label: String, value: Double, colour: String, detail: String, enabled: Boolean = true) {
-    val fix by engine.location.fix.collectAsState()
-    var saved by remember(label) { mutableStateOf(false) }
+fun SaveResultButton(engine: AcquisitionEngine, tool: ToolId, label: String, value: Double, colour: String, detail: String, enabled: Boolean = true) =
+    SaveResultButton(engine, tool, if (enabled) SaveSpec(label, value, colour, detail) else null)
+
+/**
+ * "Save to map" with a photo option. The button is always shown, so the screen does not jump or flash
+ * while results come and go between spectra: a result stays saveable for a few seconds after the
+ * last spectrum that gave one. The position is the live GPS fix, or the last known one.
+ */
+@Composable
+fun SaveResultButton(engine: AcquisitionEngine, tool: ToolId, spec: SaveSpec?) {
+    val live by engine.location.fix.collectAsState()
+    val cached = remember(live) { if (live == null) engine.location.lastKnown() else null }
+    LaunchedEffect(Unit) { engine.location.start() }
+    val fix = live ?: cached
+    // Plain holder, not state: updating it while composing must not trigger another composition.
+    val hold = remember { HeldSpec() }
+    val now = System.currentTimeMillis()
+    if (spec != null) { hold.spec = spec; hold.atMs = now }
+    val current = spec ?: hold.spec?.takeIf { now - hold.atMs < HOLD_MS }
+    var saved by remember(current?.label) { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     fun save(photo: String) {
         val f = fix ?: return
+        val c = current ?: return
         val model = (engine.connection.value as? com.rfsat.pocketspectro.core.Connection.Ready)?.info?.model ?: ""
         engine.tools.record(ToolEvent(System.currentTimeMillis(), f.latitude, f.longitude, f.accuracyM?.toDouble(),
-            tool.name, label, value, colour, detail, model, photo))
+            tool.name, c.label, c.value, c.colour, c.detail, model, photo))
         saved = true
     }
     // "With photo": the camera app takes the picture into events/photos, then the result is saved with it.
@@ -125,22 +162,31 @@ fun SaveResultButton(engine: AcquisitionEngine, tool: ToolId, label: String, val
         val file = pending; pending = null
         if (ok && file != null && file.length() > 0) save(file.name) else file?.delete()
     }
+    val can = current != null && fix != null
+    val stale = fix != null && now - fix.timeMs > 120_000
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ActionButton(onClick = { save("") }, enabled = enabled && fix != null) { Text(stringResource(R.string.tool_save_result)) }
+        ActionButton(onClick = { save("") }, enabled = can) { Text(stringResource(R.string.tool_save_result)) }
         androidx.compose.material3.OutlinedIconButton(onClick = {
             val file = java.io.File(engine.toolEvents.photoDir, "photo_%tY%<tm%<td_%<tH%<tM%<tS.jpg".format(java.util.Date()))
             pending = file
             try { camera.launch(androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", file)) } catch (_: Exception) { pending = null }
-        }, enabled = enabled && fix != null, border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant)) {
+        }, enabled = can, border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant)) {
             androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.PhotoCamera, stringResource(R.string.tool_save_photo))
         }
-        Text(stringResource(when {
-            fix == null -> R.string.tool_save_no_gps
-            saved -> R.string.tool_saved
-            else -> R.string.tool_save_hint
-        }), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(when {
+            fix == null -> stringResource(R.string.tool_save_no_gps)
+            saved -> stringResource(R.string.tool_saved)
+            current == null -> stringResource(R.string.tool_save_waiting)
+            stale -> stringResource(R.string.tool_save_last_known, ((now - fix.timeMs) / 60_000).coerceAtLeast(2).toInt())
+            else -> stringResource(R.string.tool_save_hint)
+        }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+private class HeldSpec { var spec: SaveSpec? = null; var atMs = 0L }
+
+/** How long a result stays saveable after the spectra stop giving one (noise near a threshold). */
+private const val HOLD_MS = 5_000L
 
 fun hex(rgb: IntArray) = "#%02X%02X%02X".format(rgb[0], rgb[1], rgb[2])
 

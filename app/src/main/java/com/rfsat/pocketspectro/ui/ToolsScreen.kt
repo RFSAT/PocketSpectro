@@ -59,6 +59,14 @@ import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.UnfoldLess
+import androidx.compose.runtime.remember
+import com.rfsat.pocketspectro.tools.ToolGroup
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -312,39 +320,219 @@ private fun ToolList(engine: AcquisitionEngine, onReconnect: () -> Unit) {
             }
         }
         KitsRow(engine)
-        for (t in ToolId.entries) {
-            if (t == ToolId.entries.first { it.group == t.group }) Text(stringResource(t.group.titleRes),
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp), style = MaterialTheme.typography.titleSmall,
+        // Accordion: one group open at a time (opening one closes the others); the first group by default.
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val prefs = remember { context.getSharedPreferences("tools", android.content.Context.MODE_PRIVATE) }
+        var openGroup by remember {
+            mutableStateOf(prefs.getString("grpOpen", ToolGroup.entries.first().name).let { n -> ToolGroup.entries.firstOrNull { it.name == n } })
+        }
+        val open = setOfNotNull(openGroup)
+        fun setOpen(g: ToolGroup?) { openGroup = g; prefs.edit().putString("grpOpen", g?.name ?: "").apply() }
+        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.tools_groups), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            val av = t.availability(info)
-            val ok = av !is Availability.NeedsRange
+            ActionButton(onClick = { setOpen(null) }, compact = true, enabled = openGroup != null) {
+                Icon(Icons.Filled.UnfoldLess, null, Modifier.size(18.dp)); Text(" " + stringResource(R.string.tools_collapse_all))
+            }
+        }
+        for (g in ToolGroup.entries) {
+            val tools = ToolId.entries.filter { it.group == g }
+            if (tools.isEmpty()) continue
+            val avs = tools.associateWith { it.availability(info) }
+            val isOpen = g in open
             Card(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp).clickable { engine.openTool(t) },
-                border = BorderStroke(1.5.dp, if (ok) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
-                colors = CardDefaults.cardColors(containerColor = if (ok) MaterialTheme.colorScheme.surfaceVariant
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp).clickable { setOpen(if (isOpen) null else g) },
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(t.icon, null, Modifier.size(30.dp), tint = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
-                    Spacer(Modifier.width(12.dp))
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(stringResource(t.titleRes), fontWeight = FontWeight.SemiBold)
-                        Text(stringResource(t.summaryRes), style = MaterialTheme.typography.bodySmall)
-                        Text(stringResource(t.needsRes), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (av is Availability.NeedsRange) Text(stringResource(R.string.tools_needs_range,
-                            "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi)),
-                            style = MaterialTheme.typography.labelSmall, color = OffRed, fontWeight = FontWeight.SemiBold)
-                        if (av is Availability.Partial) Text(stringResource(R.string.tools_partial_range,
-                            "%.0f".format(Locale.US, av.coveredLo), "%.0f".format(Locale.US, av.coveredHi),
-                            "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi)),
-                            style = MaterialTheme.typography.labelSmall, color = WarnAmber, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(g.titleRes), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(if (info == null) stringResource(R.string.tools_group_count, tools.size)
+                            else stringResource(R.string.tools_group_supported, tools.size, avs.values.count { it is Availability.Ok },
+                                avs.values.count { it is Availability.Partial }, avs.values.count { it is Availability.NeedsRange }),
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    Icon(if (isOpen) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        stringResource(if (isOpen) R.string.tools_collapse else R.string.tools_expand), tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+            if (isOpen) for (t in tools) ToolCard(engine, t, avs.getValue(t), info != null)
+        }
+    }
+}
+
+/** Status mark of a tool on the connected unit: green = supported, amber = partial coverage, red = not supported. */
+@Composable
+fun AvailabilityMark(av: Availability, modifier: Modifier = Modifier) {
+    val (icon, tint, desc) = when (av) {
+        is Availability.Ok -> Triple(Icons.Filled.CheckCircle, OnGreen, R.string.tools_status_ok)
+        is Availability.Partial -> Triple(Icons.Filled.Warning, WarnAmber, R.string.tools_status_partial)
+        is Availability.NeedsRange -> Triple(Icons.Filled.Cancel, OffRed, R.string.tools_status_no)
+    }
+    Icon(icon, stringResource(desc), modifier.size(24.dp), tint = tint)
+}
+
+@Composable
+private fun ToolCard(engine: AcquisitionEngine, t: ToolId, av: Availability, connected: Boolean) {
+    val ok = av !is Availability.NeedsRange
+    // Unsupported tools: everything greyed out (icon, title, description), with a red mark and the range they need.
+    val dim = if (ok) 1f else 0.38f
+    val text = MaterialTheme.colorScheme.onSurface.copy(alpha = dim)
+    Card(
+        Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 4.dp).clickable { engine.openTool(t) },
+        border = BorderStroke(1.5.dp, if (ok) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)),
+        colors = CardDefaults.cardColors(containerColor = if (ok) MaterialTheme.colorScheme.surfaceVariant
+            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(t.icon, null, Modifier.size(30.dp), tint = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(t.titleRes), fontWeight = FontWeight.SemiBold, color = text)
+                Text(stringResource(t.summaryRes), style = MaterialTheme.typography.bodySmall, color = text)
+                Text(stringResource(t.needsRes), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = dim))
+                if (av is Availability.NeedsRange) Text(stringResource(R.string.tools_needs_range,
+                    "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi)),
+                    style = MaterialTheme.typography.labelSmall, color = OffRed, fontWeight = FontWeight.SemiBold)
+                if (av is Availability.Partial) Text(stringResource(R.string.tools_partial_range,
+                    "%.0f".format(Locale.US, av.coveredLo), "%.0f".format(Locale.US, av.coveredHi),
+                    "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi)),
+                    style = MaterialTheme.typography.labelSmall, color = WarnAmber, fontWeight = FontWeight.SemiBold)
+            }
+            if (connected) { Spacer(Modifier.width(8.dp)); AvailabilityMark(av) }
+        }
+    }
+}
+
+/** Tools measuring similar quantities, for the end of each tool page. */
+val ToolId.related: List<ToolId> get() = when (this) {
+    ToolId.FIRE -> listOf(ToolId.TEMPERATURE, ToolId.EMISSION, ToolId.SUN, ToolId.GAS_COLUMNS)
+    ToolId.EMISSION -> listOf(ToolId.PHYSICS, ToolId.LAMPS, ToolId.FIRE, ToolId.HEALTH)
+    ToolId.SUN -> listOf(ToolId.GAS_COLUMNS, ToolId.UV_INDEX, ToolId.FIRE, ToolId.GREENHOUSE)
+    ToolId.GAS_COLUMNS -> listOf(ToolId.SUN, ToolId.UV_INDEX, ToolId.UV_DOSE)
+    ToolId.UV_INDEX -> listOf(ToolId.UV_DOSE, ToolId.SUN, ToolId.GAS_COLUMNS, ToolId.FILTER)
+    ToolId.LAMPS -> listOf(ToolId.LIGHT, ToolId.CRI, ToolId.LIGHT_DOSE, ToolId.EMISSION)
+    ToolId.VEGETATION -> listOf(ToolId.LEAF_CLIP, ToolId.FLUORESCENCE, ToolId.GREENHOUSE, ToolId.SOIL)
+    ToolId.FLUORESCENCE -> listOf(ToolId.VEGETATION, ToolId.LEAF_CLIP, ToolId.FLUORIMETER)
+    ToolId.LEAF_CLIP -> listOf(ToolId.VEGETATION, ToolId.FLUORESCENCE, ToolId.GREENHOUSE)
+    ToolId.GREENHOUSE -> listOf(ToolId.LIGHT, ToolId.LEAF_CLIP, ToolId.VEGETATION, ToolId.LIGHT_DOSE)
+    ToolId.WATER -> listOf(ToolId.WATER_COLOUR, ToolId.TEST_KIT, ToolId.FLUORIMETER, ToolId.CONCENTRATION)
+    ToolId.WATER_COLOUR -> listOf(ToolId.WATER, ToolId.FLUORIMETER, ToolId.TEST_KIT)
+    ToolId.SOIL -> listOf(ToolId.COLOUR, ToolId.VEGETATION, ToolId.PIGMENT)
+    ToolId.CONCENTRATION -> listOf(ToolId.TEST_KIT, ToolId.KINETICS, ToolId.NUCLEIC, ToolId.FLUORIMETER)
+    ToolId.TEST_KIT -> listOf(ToolId.CONCENTRATION, ToolId.WATER, ToolId.PH)
+    ToolId.PH -> listOf(ToolId.TEST_KIT, ToolId.CONCENTRATION, ToolId.KINETICS)
+    ToolId.FLUORIMETER -> listOf(ToolId.FLUORESCENCE, ToolId.WATER_COLOUR, ToolId.CONCENTRATION, ToolId.GEM)
+    ToolId.NUCLEIC -> listOf(ToolId.CONCENTRATION, ToolId.GROWTH, ToolId.KINETICS)
+    ToolId.GROWTH -> listOf(ToolId.KINETICS, ToolId.NUCLEIC, ToolId.CONCENTRATION)
+    ToolId.KINETICS -> listOf(ToolId.CONCENTRATION, ToolId.GROWTH, ToolId.PH)
+    ToolId.PREDICT -> listOf(ToolId.MATCH, ToolId.RAMAN, ToolId.OLIVE, ToolId.DRINKS)
+    ToolId.MATCH -> listOf(ToolId.PREDICT, ToolId.RAMAN, ToolId.PIGMENT, ToolId.COLOUR)
+    ToolId.RAMAN -> listOf(ToolId.MATCH, ToolId.PREDICT, ToolId.PIGMENT)
+    ToolId.OLIVE -> listOf(ToolId.DRINKS, ToolId.PREDICT, ToolId.MATCH)
+    ToolId.DRINKS -> listOf(ToolId.OLIVE, ToolId.COLOUR, ToolId.CONCENTRATION)
+    ToolId.COLOUR -> listOf(ToolId.SOIL, ToolId.PIGMENT, ToolId.DISPLAY, ToolId.DRINKS)
+    ToolId.LIGHT -> listOf(ToolId.CRI, ToolId.LAMPS, ToolId.GREENHOUSE, ToolId.LIGHT_DOSE)
+    ToolId.CRI -> listOf(ToolId.LIGHT, ToolId.LAMPS, ToolId.DISPLAY)
+    ToolId.DISPLAY -> listOf(ToolId.COLOUR, ToolId.CRI, ToolId.LIGHT)
+    ToolId.TEMPERATURE -> listOf(ToolId.FIRE, ToolId.LIGHT, ToolId.PHYSICS)
+    ToolId.FILM -> listOf(ToolId.FILTER, ToolId.PIGMENT, ToolId.COLOUR)
+    ToolId.FILTER -> listOf(ToolId.FILM, ToolId.UV_INDEX, ToolId.LIGHT)
+    ToolId.PIGMENT -> listOf(ToolId.COLOUR, ToolId.RAMAN, ToolId.MATCH, ToolId.SOIL)
+    ToolId.GEM -> listOf(ToolId.FLUORIMETER, ToolId.MATCH, ToolId.RAMAN, ToolId.FILTER)
+    ToolId.LIGHT_DOSE -> listOf(ToolId.LIGHT, ToolId.LAMPS, ToolId.UV_DOSE, ToolId.DIARY)
+    ToolId.UV_DOSE -> listOf(ToolId.UV_INDEX, ToolId.SKIN, ToolId.LIGHT_DOSE, ToolId.DIARY)
+    ToolId.SKIN -> listOf(ToolId.UV_DOSE, ToolId.COLOUR, ToolId.PULSE, ToolId.DIARY)
+    ToolId.PULSE -> listOf(ToolId.SKIN, ToolId.LIGHT_DOSE, ToolId.DIARY)
+    ToolId.DIARY -> listOf(ToolId.LIGHT_DOSE, ToolId.UV_DOSE, ToolId.SKIN, ToolId.PULSE, ToolId.GREENHOUSE)
+    ToolId.HEALTH -> listOf(ToolId.PHYSICS, ToolId.EMISSION, ToolId.LIGHT)
+    ToolId.PHYSICS -> listOf(ToolId.EMISSION, ToolId.HEALTH, ToolId.TEMPERATURE)
+}
+
+/** End of each tool page: tools measuring similar quantities, as a bulleted list of links with their status. */
+@Composable
+fun RelatedTools(engine: AcquisitionEngine, tool: ToolId) {
+    val conn by engine.connection.collectAsState()
+    val info = (conn as? Connection.Ready)?.info
+    val link = MaterialTheme.colorScheme.primary
+    Section(stringResource(R.string.tools_related)) {
+        for (r in tool.related) {
+            val av = r.availability(info)
+            Row(verticalAlignment = Alignment.Top) {
+                Text("•", Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // The tool name is the link.
+                        Text(stringResource(r.titleRes),
+                            Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { engine.openTool(r) },
+                            color = link, fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline,
+                            style = MaterialTheme.typography.bodyMedium)
+                        if (info != null) {
+                            Spacer(Modifier.width(8.dp))
+                            AvailabilityMark(av, Modifier.size(16.dp))
+                            val (txt, col) = when (av) {
+                                is Availability.Ok -> R.string.related_ok to OnGreen
+                                is Availability.Partial -> R.string.related_partial to WarnAmber
+                                is Availability.NeedsRange -> R.string.related_no to OffRed
+                            }
+                            Text(" " + stringResource(txt), style = MaterialTheme.typography.labelSmall, color = col, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    Text(stringResource(r.shortRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
         }
     }
+}
+
+/** One-line description of a tool (related-tools list). */
+val ToolId.shortRes: Int get() = when (this) {
+    ToolId.FIRE -> R.string.short_fire
+    ToolId.EMISSION -> R.string.short_emission
+    ToolId.SUN -> R.string.short_sun
+    ToolId.GAS_COLUMNS -> R.string.short_gas
+    ToolId.UV_INDEX -> R.string.short_uvi
+    ToolId.LAMPS -> R.string.short_lamps
+    ToolId.VEGETATION -> R.string.short_vegetation
+    ToolId.FLUORESCENCE -> R.string.short_sif
+    ToolId.LEAF_CLIP -> R.string.short_leaf
+    ToolId.GREENHOUSE -> R.string.short_greenhouse
+    ToolId.WATER -> R.string.short_water
+    ToolId.WATER_COLOUR -> R.string.short_watercolour
+    ToolId.SOIL -> R.string.short_soil
+    ToolId.CONCENTRATION -> R.string.short_concentration
+    ToolId.TEST_KIT -> R.string.short_kit
+    ToolId.PH -> R.string.short_ph
+    ToolId.FLUORIMETER -> R.string.short_fluorimeter
+    ToolId.NUCLEIC -> R.string.short_nucleic
+    ToolId.GROWTH -> R.string.short_growth
+    ToolId.KINETICS -> R.string.short_kinetics
+    ToolId.PREDICT -> R.string.short_predict
+    ToolId.MATCH -> R.string.short_match
+    ToolId.RAMAN -> R.string.short_raman
+    ToolId.OLIVE -> R.string.short_olive
+    ToolId.DRINKS -> R.string.short_drinks
+    ToolId.COLOUR -> R.string.short_colour
+    ToolId.LIGHT -> R.string.short_light
+    ToolId.CRI -> R.string.short_cri
+    ToolId.DISPLAY -> R.string.short_display
+    ToolId.TEMPERATURE -> R.string.short_temperature
+    ToolId.FILM -> R.string.short_film
+    ToolId.FILTER -> R.string.short_filter
+    ToolId.PIGMENT -> R.string.short_pigment
+    ToolId.GEM -> R.string.short_gem
+    ToolId.LIGHT_DOSE -> R.string.short_lightdose
+    ToolId.UV_DOSE -> R.string.short_uvdose
+    ToolId.SKIN -> R.string.short_skin
+    ToolId.PULSE -> R.string.short_pulse
+    ToolId.DIARY -> R.string.short_diary
+    ToolId.HEALTH -> R.string.short_health
+    ToolId.PHYSICS -> R.string.short_physics
 }
 
 @Composable
@@ -387,8 +575,16 @@ private fun ToolHost(engine: AcquisitionEngine, tool: ToolId, onReconnect: () ->
                 Text(stringResource(R.string.tools_unavailable, "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi),
                     "%.0f".format(Locale.US, info.wavelengths().first()), "%.0f".format(Locale.US, info.wavelengths().last())))
                 if (info.simulated) Text(stringResource(R.string.tools_unavailable_sim), style = MaterialTheme.typography.bodySmall)
+                RelatedTools(engine, tool)
             }
-            else -> when (tool) {
+            else -> androidx.compose.runtime.CompositionLocalProvider(LocalToolFooter provides { RelatedTools(engine, tool) }) {
+              Column {
+                // Partial coverage: the tool runs, with a warning (the Colour tool explains its partial mode itself).
+                ClashNote(engine, tool)
+                if (av is Availability.Partial && tool != ToolId.COLOUR) Note(stringResource(R.string.tools_partial_warning,
+                    "%.0f".format(Locale.US, av.coveredLo), "%.0f".format(Locale.US, av.coveredHi),
+                    "%.0f".format(Locale.US, av.lo), "%.0f".format(Locale.US, av.hi)))
+                when (tool) {
                 ToolId.FIRE -> FireScreen(engine)
                 ToolId.EMISSION -> EmissionTool(engine)
                 ToolId.VEGETATION -> VegetationTool(engine)
@@ -430,6 +626,8 @@ private fun ToolHost(engine: AcquisitionEngine, tool: ToolId, onReconnect: () ->
                 ToolId.PULSE -> WellnessGate { PulseTool(engine) }
                 ToolId.DIARY -> WellnessGate { DiaryTool(engine) }
                 ToolId.PHYSICS -> PhysicsTool(engine)
+                }
+              }
             }
         }
     }

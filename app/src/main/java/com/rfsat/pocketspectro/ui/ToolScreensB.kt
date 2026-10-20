@@ -67,7 +67,7 @@ fun ConcentrationTool(engine: AcquisitionEngine) {
     val conc = cal?.concentration(a) ?: Double.NaN
     val inRange = cal != null && st.standards.isNotEmpty() && conc in st.standards.minOf { it.concentration } * 0.9..st.standards.maxOf { it.concentration } * 1.1
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (absSpectrum == null) {
             Text(stringResource(R.string.conc_needs_blank), Modifier.padding(horizontal = 16.dp, vertical = 6.dp), color = WarnAmber)
@@ -162,7 +162,7 @@ fun ColourTool(engine: AcquisitionEngine) {
     val unitWl = (conn as? com.rfsat.pocketspectro.core.Connection.Ready)?.info?.wavelengths()
     val partial = unitWl != null && unitWl.isNotEmpty() && !Colorimetry.supported(unitWl)
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (partial && unitWl != null) {
             // Only part of 380-780 nm: say which colours can still be told apart.
@@ -215,9 +215,9 @@ fun ColourTool(engine: AcquisitionEngine) {
                 NumberField(stringResource(R.string.colour_tolerance), st.tolerance, { v -> engine.tools.colourUpdate { it.copy(tolerance = v) } },
                     Modifier.weight(1f), 1, 0.1, 50.0, "ΔE")
             }
-            if (lab != null && rgb != null) SaveResultButton(engine, ToolId.COLOUR, "L*a*b* %.0f/%.0f/%.0f".format(Locale.US, lab.l, lab.a, lab.b) +
+            SaveResultButton(engine, ToolId.COLOUR, if (lab != null && rgb != null) SaveSpec("L*a*b* %.0f/%.0f/%.0f".format(Locale.US, lab.l, lab.a, lab.b) +
                 (de?.let { "  ΔE %.1f".format(Locale.US, it) } ?: ""), de ?: Double.NaN, hex(rgb),
-                "L* %.2f; a* %.2f; b* %.2f".format(Locale.US, lab.l, lab.a, lab.b) + (de?.let { "; ΔE00 %.2f".format(Locale.US, it) } ?: ""))
+                "L* %.2f; a* %.2f; b* %.2f".format(Locale.US, lab.l, lab.a, lab.b) + (de?.let { "; ΔE00 %.2f".format(Locale.US, it) } ?: "")) else null)
         }
         ReferencePanel(engine, RefKind.WHITE)
         SimPanel(engine) {
@@ -245,7 +245,7 @@ fun LightTool(engine: AcquisitionEngine) {
     val visible = fr != null && Colorimetry.supported(fr.wavelengths)
     val parCovered = fr != null && com.rfsat.pocketspectro.tools.Spectra.covers(fr.wavelengths, 400.0, 700.0)
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (fr != null && spd != null) SpectrumChart(fr.wavelengths, spd, height = 210.dp,
             yUnit = stringResource(if (resp != null) R.string.unit_relative else R.string.unit_counts_per_s))
@@ -327,7 +327,7 @@ fun KineticsTool(engine: AcquisitionEngine) {
         ToolHub.KQuantity.COUNTS -> R.string.unit_counts
     })
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Section(stringResource(R.string.kin_quantity)) {
             ChipChoices(ToolHub.KQuantity.entries, st.quantity, { stringResource(when (it) {

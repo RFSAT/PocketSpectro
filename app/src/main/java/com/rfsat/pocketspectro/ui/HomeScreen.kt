@@ -160,6 +160,11 @@ fun HomeScreen(engine: AcquisitionEngine, onOpenTab: (Tab) -> Unit, onReconnect:
             style = MaterialTheme.typography.bodySmall, color = muted)
         Text(stringResource(R.string.home_not_affiliated), style = MaterialTheme.typography.bodySmall,
             color = muted.copy(alpha = 0.7f), fontSize = 11.sp)
+
+        HorizontalDivider()
+        // Acknowledgement, last on the Home tab.
+        Text(stringResource(R.string.home_ai_ack), Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall, color = muted)
     }
 }
 

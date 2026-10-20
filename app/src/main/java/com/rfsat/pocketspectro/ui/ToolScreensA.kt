@@ -57,7 +57,7 @@ fun EmissionTool(engine: AcquisitionEngine) {
     var customText by remember { mutableStateOf(EmissionLines.formatCustom(cfg.custom)) }
     var simChoice by remember { mutableStateOf((engine.simulator?.scene as? SimScene.Emit)?.emitter) }
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         val fr = frame
         if (fr != null) {
@@ -165,7 +165,7 @@ fun VegetationTool(engine: AcquisitionEngine) {
     val r = st.last
     var simScene by remember { mutableStateOf(engine.simulator?.scene as? SimScene.Reflect) }
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (r == null) {
             Text(stringResource(R.string.veg_needs_ref), Modifier.padding(horizontal = 16.dp, vertical = 6.dp), color = WarnAmber)
@@ -261,7 +261,7 @@ fun MatchTool(engine: AcquisitionEngine) {
     val matches = if (fr != null && current != null) SpectralLibrary.match(fr.wavelengths, current, quantity, library) else emptyList()
     val best = matches.firstOrNull()
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (fr != null && current != null) {
             // Library spectrum scaled onto the current one for comparison.
@@ -287,8 +287,8 @@ fun MatchTool(engine: AcquisitionEngine) {
             for (m in matches.take(5)) KeyValue(m.entry.name, "${f(m.score * 100, 1)} %", live = true)
             NumberField(stringResource(R.string.match_threshold), thr * 100, { engine.tools.matchThreshold(it / 100) }, Modifier.fillMaxWidth(), 1, 50.0, 99.9, "%")
             Text(stringResource(R.string.match_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (best != null) SaveResultButton(engine, ToolId.MATCH, if (best.score >= thr) best.entry.name else "?",
-                best.score * 100, if (best.score >= thr) "#2E7D32" else "#C62828", "score %.1f %%".format(Locale.US, best.score * 100))
+            SaveResultButton(engine, ToolId.MATCH, if (best != null) SaveSpec(if (best.score >= thr) best.entry.name else "?",
+                best.score * 100, if (best.score >= thr) "#2E7D32" else "#C62828", "score %.1f %%".format(Locale.US, best.score * 100)) else null)
         }
         Section(stringResource(R.string.match_library)) {
             Text(stringResource(if (refl != null) R.string.match_lib_help_refl else R.string.match_lib_help_counts),

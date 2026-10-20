@@ -7,6 +7,21 @@ Versioning: 1.MINOR.PATCH. The minor number rises with new features, the patch n
 Only `appVersion` in app/build.gradle.kts is edited; the Play version code is derived from it
 (1*10000 + MINOR*100 + PATCH).
 
+## 1.11.1 (build 11101)
+The screen-off notification and background running are now used only with a real spectrometer; with the simulator, demonstration loggers run while the app is open.
+
+## 1.11.0 (build 11100)
+Loggers, recorders and alarms keep running with the screen off: an ongoing notification lists what runs, with live values and a Stop all button, and the phone stays awake for them. The running-tools list has lower ON/OFF switches, and each conflict between running tools fits on one line.
+
+## 1.10.0 (build 11000)
+Several tools can now run at the same time. A badge at the top shows how many are running; tapping it opens a task manager listing acquisition, every tool recorder, logger and alarm, and the session log in one aligned table, each with its status and an ON/OFF switch, plus Stop all. Tools that need a different set-up are flagged as conflicting.
+
+## 1.9.1 (build 10901)
+Related tools at the end of each tool page are now a bulleted list: each tool name is a link, followed by whether the connected spectrometer supports it fully, partly or not at all, and a one-line description.
+
+## 1.9.0 (build 10900)
+Tools tab: groups open one at a time, each tool has a green, amber or red mark for the connected spectrometer, and unsupported tools are fully greyed out. Partly covered tools now open with a warning instead of being disabled. Each tool page ends with links to related tools. Acquisition switched on in one tool is switched off in all others. Save to map no longer flickers and uses the last known position. Home acknowledges Claude AI.
+
 ## 1.8.0 (build 10800)
 20 new tools: test-kit reader, pH by indicator, fluorimeter, DNA and protein purity, growth curve, physics lab, water colour (Forel-Ule), leaf chlorophyll clip, greenhouse light, ozone and NO₂ (experimental), soil colour, colour rendering (CRI, TM-30), display check, pigments and gems; plus non-medical exposure tools for research (light dose, UV dose, skin, pulse, exposure diary) and application kits. Please recalibrate the Light tool's lux scale.
 

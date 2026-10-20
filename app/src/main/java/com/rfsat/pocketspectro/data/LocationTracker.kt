@@ -58,6 +58,20 @@ class LocationTracker(private val context: Context) {
         try { manager.removeUpdates(listener) } catch (_: Exception) {}
     }
 
+    /**
+     * Newest position the phone knows from any provider (GPS, network, passive), stamped with its own
+     * time; used when no live fix has arrived yet. Null without permission or when none is cached.
+     */
+    @SuppressLint("MissingPermission")
+    fun lastKnown(): GeoFix? {
+        if (!hasPermission()) return null
+        val loc = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
+            .filter { manager.allProviders.contains(it) }
+            .mapNotNull { try { manager.getLastKnownLocation(it) } catch (_: Exception) { null } }
+            .maxByOrNull { it.time } ?: return null
+        return loc.toFix().copy(timeMs = loc.time.takeIf { it > 0 } ?: System.currentTimeMillis())
+    }
+
     /** Latest fix, or null when none or older than [maxAgeMs]. */
     fun current(maxAgeMs: Long = 15_000L): GeoFix? = state.value?.takeIf { System.currentTimeMillis() - it.timeMs <= maxAgeMs }
 

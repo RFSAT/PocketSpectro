@@ -43,38 +43,56 @@ sealed interface Availability {
     data class Partial(val lo: Double, val hi: Double, val coveredLo: Double, val coveredHi: Double) : Availability
 }
 
+/** Wavelength range a tool needs (nm), or null when any unit will do. */
+val ToolId.needsRange: ClosedFloatingPointRange<Double>? get() = when (this) {
+    ToolId.FIRE -> 755.0..785.0
+    ToolId.VEGETATION -> 660.0..780.0
+    ToolId.COLOUR, ToolId.SOIL, ToolId.CRI, ToolId.DISPLAY, ToolId.LIGHT_DOSE -> 380.0..780.0
+    ToolId.SUN -> 435.0..1025.0
+    ToolId.UV_INDEX, ToolId.UV_DOSE -> 290.0..400.0
+    ToolId.LAMPS -> 430.0..620.0
+    ToolId.FLUORESCENCE -> 752.0..774.0
+    ToolId.WATER -> 218.0..277.0
+    ToolId.OLIVE -> 230.0..274.0
+    ToolId.DRINKS -> 415.0..705.0
+    ToolId.GAS_COLUMNS -> 308.0..490.0
+    ToolId.LEAF_CLIP -> 645.0..785.0
+    ToolId.GREENHOUSE -> 400.0..750.0
+    ToolId.WATER_COLOUR -> 400.0..710.0
+    ToolId.PH -> 430.0..620.0
+    ToolId.NUCLEIC -> 228.0..322.0
+    ToolId.GROWTH -> 595.0..605.0
+    ToolId.PIGMENT -> 420.0..700.0
+    ToolId.SKIN -> 440.0..660.0
+    ToolId.PULSE -> 650.0..900.0
+    else -> null
+}
+
+/**
+ * Whether a tool can run on the connected spectrometer. A unit covering the whole range is Ok; one
+ * covering part of it is Partial (the tool runs, with a warning that results may be incomplete);
+ * only a unit with no useful overlap is NeedsRange.
+ */
 fun ToolId.availability(info: DeviceInfo?): Availability {
     if (info == null) return Availability.Ok
     val wl = info.wavelengths()
-    return when (this) {
-        ToolId.FIRE -> if (info.fireCapable) Availability.Ok else Availability.NeedsRange(755.0, 785.0)
-        ToolId.VEGETATION -> if (Vegetation.supported(wl)) Availability.Ok else Availability.NeedsRange(660.0, 780.0)
-        ToolId.COLOUR -> when {
-            Colorimetry.supported(wl) -> Availability.Ok
-            Colorimetry.partlySupported(wl) -> Colorimetry.coveredRange(wl).let { Availability.Partial(380.0, 780.0, it.start, it.endInclusive) }
-            else -> Availability.NeedsRange(380.0, 780.0)
-        }
-        ToolId.SUN -> if (SunPhotometer.channels(wl).isNotEmpty()) Availability.Ok else Availability.NeedsRange(435.0, 1025.0)
-        ToolId.UV_INDEX -> if (UvIndex.supported(wl)) Availability.Ok else Availability.NeedsRange(290.0, 400.0)
-        ToolId.LAMPS -> if (LampClassifier.supported(wl)) Availability.Ok else Availability.NeedsRange(430.0, 620.0)
-        ToolId.FLUORESCENCE -> if (Fluorescence.supported(wl, Fluorescence.Band.O2A)) Availability.Ok else Availability.NeedsRange(752.0, 774.0)
-        ToolId.WATER -> if (Spectra.covers(wl, 218.0, 277.0)) Availability.Ok else Availability.NeedsRange(218.0, 277.0)
-        ToolId.OLIVE -> if (Spectra.covers(wl, 230.0, 274.0)) Availability.Ok else Availability.NeedsRange(230.0, 274.0)
-        ToolId.DRINKS -> if (Spectra.covers(wl, 415.0, 705.0)) Availability.Ok else Availability.NeedsRange(415.0, 705.0)
-        ToolId.GAS_COLUMNS -> if (GasColumns.ozoneSupported(wl) || Spectra.covers(wl, GasColumns.NO2_LO, GasColumns.NO2_HI)) Availability.Ok else Availability.NeedsRange(308.0, 490.0)
-        ToolId.LEAF_CLIP -> if (Spectra.covers(wl, 645.0, 785.0)) Availability.Ok else Availability.NeedsRange(645.0, 785.0)
-        ToolId.GREENHOUSE -> if (Spectra.covers(wl, 400.0, 700.0)) Availability.Ok else Availability.NeedsRange(400.0, 750.0)
-        ToolId.WATER_COLOUR -> if (ForelUle.supported(wl)) Availability.Ok else Availability.NeedsRange(400.0, 710.0)
-        ToolId.SOIL, ToolId.CRI, ToolId.DISPLAY, ToolId.LIGHT_DOSE -> if (Colorimetry.supported(wl)) Availability.Ok else Availability.NeedsRange(380.0, 780.0)
-        ToolId.PH -> if (Spectra.covers(wl, 430.0, 620.0)) Availability.Ok else Availability.NeedsRange(430.0, 620.0)
-        ToolId.NUCLEIC -> if (Spectra.covers(wl, 228.0, 322.0)) Availability.Ok else Availability.NeedsRange(228.0, 322.0)
-        ToolId.GROWTH -> if (Spectra.covers(wl, 595.0, 605.0)) Availability.Ok else Availability.NeedsRange(595.0, 605.0)
-        ToolId.PIGMENT -> if (Spectra.covers(wl, 420.0, 700.0)) Availability.Ok else Availability.NeedsRange(420.0, 700.0)
-        ToolId.UV_DOSE -> if (UvIndex.supported(wl)) Availability.Ok else Availability.NeedsRange(290.0, 400.0)
-        ToolId.SKIN -> if (Spectra.covers(wl, 555.0, 660.0)) Availability.Ok else Availability.NeedsRange(440.0, 660.0)
-        ToolId.PULSE -> if (Spectra.covers(wl, 650.0, 700.0) || Spectra.covers(wl, 800.0, 900.0)) Availability.Ok else Availability.NeedsRange(650.0, 900.0)
-        else -> Availability.Ok
+    val need = needsRange ?: return Availability.Ok
+    // Tools that work fully on one of alternative bands.
+    val fullAlt = when (this) {
+        ToolId.FIRE -> info.fireCapable
+        ToolId.SUN -> SunPhotometer.channels(wl).size >= 4
+        ToolId.GAS_COLUMNS -> GasColumns.ozoneSupported(wl) || Spectra.covers(wl, GasColumns.NO2_LO, GasColumns.NO2_HI)
+        ToolId.LEAF_CLIP -> Spectra.covers(wl, 645.0, 655.0) && (Spectra.covers(wl, 935.0, 945.0) || Spectra.covers(wl, 775.0, 785.0))
+        ToolId.GREENHOUSE -> Spectra.covers(wl, 400.0, 700.0)
+        ToolId.SKIN -> Spectra.covers(wl, 555.0, 660.0) && Spectra.covers(wl, 435.0, 525.0)
+        ToolId.PULSE -> Spectra.covers(wl, 650.0, 700.0) || Spectra.covers(wl, 800.0, 900.0)
+        else -> false
     }
+    if (fullAlt || Spectra.covers(wl, need.start, need.endInclusive)) return Availability.Ok
+    val lo = maxOf(wl.first(), need.start); val hi = minOf(wl.last(), need.endInclusive)
+    // Useful overlap: at least a quarter of the range, or 20 nm of it.
+    return if (hi - lo >= minOf(20.0, (need.endInclusive - need.start) * 0.25)) Availability.Partial(need.start, need.endInclusive, lo, hi)
+    else Availability.NeedsRange(need.start, need.endInclusive)
 }
 
 /** What the simulator should show when a tool is opened. */
@@ -593,6 +611,20 @@ class ToolHub(context: Context, private val journal: ToolEventJournal, private v
             }
             _pulse.value = p.copy(t = t2, v = v2, result = res)
         }
+    }
+
+    /** Switches off the background work of every tool except [keep] (null: all of them). */
+    fun stopAllExcept(keep: ToolId?) {
+        if (keep != ToolId.VEGETATION && _veg.value.recording) vegRecording(false)
+        if (keep != ToolId.LAMPS && _lamps.value.recording) lampRecording(false)
+        if (keep != ToolId.EMISSION && _emission.value.armed) emissionArm(false)
+        if (keep != ToolId.KINETICS && _kin.value.recording) kineticsRecording(false)
+        if (keep != ToolId.SUN && _sun.value.langley) sunLangley(false)
+        if (keep != ToolId.GROWTH && _growth.value.recording) growthRecording(false, 0L)
+        if (keep != ToolId.LIGHT_DOSE && _lightDose.value.logging) lightDoseLogging(false)
+        if (keep != ToolId.UV_DOSE && _uvDose.value.logging) uvDoseLogging(false)
+        if (keep != ToolId.GREENHOUSE && _plant.value.logging) plantLogging(false)
+        if (keep != ToolId.PULSE && _pulse.value.recording) pulseRecording(false)
     }
 
     // ---- per frame ------------------------------------------------------------------------------

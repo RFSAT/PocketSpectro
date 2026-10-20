@@ -10,6 +10,13 @@
     <!-- Map tiles (OpenStreetMap / Esri / OpenTopoMap) on the Map tab. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Loggers, recorders and alarms with the screen off (JobService): foreground service with a
+         notification, and a partial wake lock while they run. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".SpectroApp"
@@ -36,6 +43,11 @@
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
+
+        <service
+            android:name=".core.JobService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice|location" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

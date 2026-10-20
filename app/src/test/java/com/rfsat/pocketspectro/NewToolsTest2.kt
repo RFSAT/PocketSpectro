@@ -1,6 +1,7 @@
 package com.rfsat.pocketspectro
 
 import com.rfsat.pocketspectro.sim.SimClock
+import com.rfsat.pocketspectro.tools.availability
 import com.rfsat.pocketspectro.sim.SimDisplay
 import com.rfsat.pocketspectro.sim.SimEmitter
 import com.rfsat.pocketspectro.sim.SimFilter
@@ -258,5 +259,33 @@ class NewToolsTest2 {
         val r = Pulse.analyse(t.toDoubleArray(), v.toDoubleArray())
         println("pulse ${r.bpm} bpm q ${r.quality} PI ${r.perfusionIndex} RMSSD ${r.rmssdMs} beats ${r.beats} frames ${t.size}")
         assertEquals(72.0, r.bpm!!, 4.0); assertTrue(r.perfusionIndex!! in 1.0..4.0)
+    }
+
+    @Test fun availabilityPartialCoverage() {
+        val nir = com.rfsat.pocketspectro.core.DeviceInfo("STS-NIR", "T", 1024, 0, 0, com.rfsat.pocketspectro.sim.SimModel.NIR.coefficients, null, 16383, true, fireCapable = true)
+        val uv = com.rfsat.pocketspectro.core.DeviceInfo("STS-UV", "T", 1024, 0, 0, com.rfsat.pocketspectro.sim.SimModel.UV.coefficients, null, 16383, true)
+        fun av(t: String, i: com.rfsat.pocketspectro.core.DeviceInfo) = com.rfsat.pocketspectro.tools.ToolId.valueOf(t).availability(i)
+        assertTrue(av("FIRE", nir) is com.rfsat.pocketspectro.tools.Availability.Ok)
+        assertTrue(av("LEAF_CLIP", nir) is com.rfsat.pocketspectro.tools.Availability.Ok)
+        assertTrue(av("COLOUR", nir) is com.rfsat.pocketspectro.tools.Availability.Partial)
+        assertTrue(av("GREENHOUSE", nir) is com.rfsat.pocketspectro.tools.Availability.Partial)
+        assertTrue(av("UV_INDEX", nir) is com.rfsat.pocketspectro.tools.Availability.NeedsRange)
+        assertTrue(av("NUCLEIC", uv) is com.rfsat.pocketspectro.tools.Availability.Ok)
+        assertTrue(av("PULSE", uv) is com.rfsat.pocketspectro.tools.Availability.NeedsRange)
+        assertTrue(av("SKIN", uv) is com.rfsat.pocketspectro.tools.Availability.Partial)
+        assertTrue(av("EMISSION", uv) is com.rfsat.pocketspectro.tools.Availability.Ok)
+    }
+
+    @Test fun jobClashes() {
+        fun n(t: com.rfsat.pocketspectro.tools.ToolId, auto: Boolean = false) = com.rfsat.pocketspectro.tools.Jobs.needs(t, auto)!!
+        fun c(a: com.rfsat.pocketspectro.tools.Jobs.Needs, b: com.rfsat.pocketspectro.tools.Jobs.Needs) = com.rfsat.pocketspectro.tools.Jobs.clash(a, b)
+        val view = com.rfsat.pocketspectro.tools.Jobs.Clash.VIEW
+        val ref = com.rfsat.pocketspectro.tools.Jobs.Clash.REFERENCE
+        val ids = com.rfsat.pocketspectro.tools.ToolId.entries.associateBy { it.name }
+        assertTrue(c(n(ids.getValue("LIGHT_DOSE")), n(ids.getValue("LAMPS"))).contains(view))
+        assertTrue(c(n(ids.getValue("KINETICS")), n(ids.getValue("GROWTH"))).isEmpty())
+        assertTrue(c(n(ids.getValue("GREENHOUSE"), true), n(ids.getValue("UV_DOSE"))).isEmpty())
+        assertTrue(c(n(ids.getValue("EMISSION")), n(ids.getValue("LAMPS"))).isEmpty())
+        assertTrue(c(n(ids.getValue("VEGETATION")), n(ids.getValue("KINETICS"))).containsAll(listOf(view, ref)))
     }
 }

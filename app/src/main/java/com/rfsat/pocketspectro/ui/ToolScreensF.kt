@@ -93,7 +93,7 @@ fun WaterColourTool(engine: AcquisitionEngine) {
     val fr = frame
     val r = fr?.let { engine.ratioPerSecond(it) }
     val res = if (fr != null && r != null) ForelUle.analyse(fr.wavelengths, r) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (r == null) Note(stringResource(R.string.fu_needs_white))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -111,9 +111,9 @@ fun WaterColourTool(engine: AcquisitionEngine) {
             KeyValue(stringResource(R.string.fu_pc), res?.pcIndex?.let { f(it, 3) + "  " + stringResource(if (it > 0.25) R.string.fu_pc_present else R.string.fu_pc_absent) } ?: "—", live = true)
             KeyValue(stringResource(R.string.fu_nir), res?.nirPercent?.let { "${f(it, 2)} %" } ?: "—", live = true)
             Hint(stringResource(R.string.fu_help))
-            if (res != null) SaveResultButton(engine, ToolId.WATER_COLOUR, "FU ${res.fu}", res.fu.toDouble(),
+            SaveResultButton(engine, ToolId.WATER_COLOUR, if (res != null) SaveSpec("FU ${res.fu}", res.fu.toDouble(),
                 hex(xyColour(ForelUle.XY[res.fu - 1].first, ForelUle.XY[res.fu - 1].second)),
-                "FU %d; hue %.1f deg; R705/R665 %s; PC %s".format(Locale.US, res.fu, res.hueAngle, f(res.chlRatio), f(res.pcIndex, 3)))
+                "FU %d; hue %.1f deg; R705/R665 %s; PC %s".format(Locale.US, res.fu, res.hueAngle, f(res.chlRatio), f(res.pcIndex, 3))) else null)
         }
         ReferencePanel(engine, RefKind.WHITE)
         SimPanel(engine) {
@@ -144,7 +144,7 @@ fun LeafClipTool(engine: AcquisitionEngine) {
     val fr = frame
     val t = fr?.ratio()
     val r = if (fr != null && t != null) LeafClip.measure(fr.wavelengths, t, k) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (t == null) Note(stringResource(R.string.leaf_needs_empty))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -164,8 +164,8 @@ fun LeafClipTool(engine: AcquisitionEngine) {
                 }
             }
             if (params["leaf.k"] != null) ActionButton(onClick = { engine.tools.setParam("leaf.k", null) }, compact = true) { Text(stringResource(R.string.wat_reset)) }
-            if (r != null) SaveResultButton(engine, ToolId.LEAF_CLIP, "${stringResource(R.string.leaf_index)} ${f(r.spadLike, 1)}", r.spadLike,
-                if (r.spadLike < 30) "#F9A825" else "#2E7D32", "index %.1f; chl %.1f ug/cm2; log ratio %.3f".format(Locale.US, r.spadLike, r.chlorophyll, r.logRatio))
+            SaveResultButton(engine, ToolId.LEAF_CLIP, if (r != null) SaveSpec("${stringResource(R.string.leaf_index)} ${f(r.spadLike, 1)}", r.spadLike,
+                if (r.spadLike < 30) "#F9A825" else "#2E7D32", "index %.1f; chl %.1f ug/cm2; log ratio %.3f".format(Locale.US, r.spadLike, r.chlorophyll, r.logRatio)) else null)
         }
         ReferencePanel(engine, RefKind.OPEN)
         SimPanel(engine) {
@@ -244,7 +244,7 @@ fun GreenhouseTool(engine: AcquisitionEngine) {
     val fr = frame
     val r = st.result
     val spd = fr?.let { engine.tools.spdPerSecond(it) }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (st.ppfd == null) Note(stringResource(R.string.gh_needs_cal))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -270,8 +270,8 @@ fun GreenhouseTool(engine: AcquisitionEngine) {
             }
             Hint(stringResource(R.string.gh_dli_help))
             val p = st.ppfd
-            if (p != null) SaveResultButton(engine, ToolId.GREENHOUSE, "PPFD ${f(p, 0)}", p, "#7CB342",
-                "PPFD %.0f umol/m2/s; R:FR %s; blue %s %%; DLI %.2f".format(Locale.US, p, f(r?.rfr), f(r?.bluePercent, 1), st.dli))
+            SaveResultButton(engine, ToolId.GREENHOUSE, if (p != null) SaveSpec("PPFD ${f(p, 0)}", p, "#7CB342",
+                "PPFD %.0f umol/m2/s; R:FR %s; blue %s %%; DLI %.2f".format(Locale.US, p, f(r?.rfr), f(r?.bluePercent, 1), st.dli)) else null)
         }
         CalibrationPanel(engine, { simPpfd(simEmitter) }, truthIsPpfd = true)
         ReferencePanel(engine, RefKind.DARK_ONLY)
@@ -330,7 +330,7 @@ fun GasColumnsTool(engine: AcquisitionEngine) {
     val clean = (params["gas.no2.clean"] ?: 0.0) > 0.5
     val vcd = no2Res?.let { (scd, _) -> val dm = if (clean) m else if (m != null && mRef != null) m - mRef else null
         if (dm != null && kotlin.math.abs(dm) >= (if (clean) 0.9 else 0.5)) scd / GasColumns.MOLEC_PER_DU / dm else null }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Note(stringResource(R.string.gas_experimental))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -361,7 +361,7 @@ fun GasColumnsTool(engine: AcquisitionEngine) {
                     Text(stringResource(R.string.gas_langley_use, langley.size))
                 }
             }
-            if (du != null) SaveResultButton(engine, ToolId.GAS_COLUMNS, "O₃ ${f(du, 0)} DU", du, "#5E35B1", "ozone %.0f DU; airmass %.3f".format(Locale.US, du, m))
+            SaveResultButton(engine, ToolId.GAS_COLUMNS, if (du != null) SaveSpec("O₃ ${f(du, 0)} DU", du, "#5E35B1", "ozone %.0f DU; airmass %.3f".format(Locale.US, du, m)) else null)
         }
         if (no2) Section("NO₂ (DOAS)") {
             KeyValue(stringResource(R.string.gas_scd), no2Res?.let { (s, e) -> "%.2e ± %.1e cm⁻²".format(Locale.US, s, e) } ?: "—", live = true)
@@ -376,8 +376,8 @@ fun GasColumnsTool(engine: AcquisitionEngine) {
                 ActionButton(onClick = { importer.launch(arrayOf("text/*", "application/octet-stream")) }) { Text(stringResource(R.string.gas_import_xs)) }
             }
             SwitchRow(stringResource(R.string.gas_clean_ref), clean, { engine.tools.setParam("gas.no2.clean", if (it) 1.0 else 0.0) }, stringResource(R.string.gas_clean_ref_help))
-            if (vcd != null) SaveResultButton(engine, ToolId.GAS_COLUMNS, "NO₂ ${f(vcd, 2)} DU", vcd, "#6D4C41",
-                "NO2 %.3f DU; dSCD %.3e; airmass %.3f".format(Locale.US, vcd, no2Res.first, m))
+            SaveResultButton(engine, ToolId.GAS_COLUMNS, if (vcd != null) SaveSpec("NO₂ ${f(vcd, 2)} DU", vcd, "#6D4C41",
+                "NO2 %.3f DU; dSCD %.3e; airmass %.3f".format(Locale.US, vcd, no2Res.first, m)) else null)
         }
         ReferencePanel(engine, RefKind.DARK_ONLY)
         SimPanel(engine) {
@@ -407,7 +407,7 @@ fun SoilTool(engine: AcquisitionEngine) {
         lab?.let { Munsell.nearest(it, !allChips, 3) } ?: emptyList()
     }
     val best = matches.firstOrNull()
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (r == null) Note(stringResource(R.string.soil_needs_white))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -421,8 +421,8 @@ fun SoilTool(engine: AcquisitionEngine) {
             for (k in 0..2) { val mm = matches.getOrNull(k); KeyValue(stringResource(R.string.soil_match_n, k + 1), mm?.let { "${it.chip.notation} · ΔE00 ${f(it.deltaE, 1)}" } ?: "—", live = true) }
             SwitchRow(stringResource(R.string.soil_all_chips), allChips, { allChips = it })
             Hint(stringResource(R.string.soil_help))
-            if (best != null) SaveResultButton(engine, ToolId.SOIL, best.chip.notation, best.chip.value, hex(Colorimetry.srgb(Colorimetry.reflectanceXYZ(fr!!.wavelengths, r!!))),
-                "Munsell %s (dE00 %.1f); L* %.1f a* %.1f b* %.1f".format(Locale.US, best.chip.notation, best.deltaE, lab!!.l, lab.a, lab.b))
+            SaveResultButton(engine, ToolId.SOIL, if (best != null) SaveSpec(best.chip.notation, best.chip.value, hex(Colorimetry.srgb(Colorimetry.reflectanceXYZ(fr!!.wavelengths, r!!))),
+                "Munsell %s (dE00 %.1f); L* %.1f a* %.1f b* %.1f".format(Locale.US, best.chip.notation, best.deltaE, lab!!.l, lab.a, lab.b)) else null)
         }
         ReferencePanel(engine, RefKind.WHITE)
         SimPanel(engine) {
@@ -459,7 +459,7 @@ fun CriTool(engine: AcquisitionEngine) {
         }
     }
     val cri = res?.first; val tm = res?.second
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (resp == null) Note(stringResource(R.string.cri_needs_response))
         if (fr != null && !ok) Note(stringResource(if (fr.saturated) R.string.cri_saturated else R.string.cri_weak))
@@ -475,8 +475,8 @@ fun CriTool(engine: AcquisitionEngine) {
             KeyValue("R9–R14", cri?.r?.drop(8)?.joinToString(" ") { f(it, 0) } ?: "—", live = true)
             KeyValue(stringResource(R.string.cri_rcs), tm?.rcs?.let { a -> listOf(0, 4, 8, 12).joinToString(" · ") { i -> "h${i + 1} ${"%+.0f".format(Locale.US, a[i])} %" } } ?: "—", live = true)
             Hint(stringResource(R.string.cri_help))
-            if (cri != null && tm != null) SaveResultButton(engine, ToolId.CRI, "Ra ${f(cri.ra, 0)} · Rf ${f(tm.rf, 0)}", cri.ra, "#FB8C00",
-                "Ra %.1f; R9 %.1f; Rf %.1f; Rg %.1f; CCT %.0f K; Duv %.4f".format(Locale.US, cri.ra, cri.r9, tm.rf, tm.rg, cri.cct.kelvin, cri.cct.duv))
+            SaveResultButton(engine, ToolId.CRI, if (cri != null && tm != null) SaveSpec("Ra ${f(cri.ra, 0)} · Rf ${f(tm.rf, 0)}", cri.ra, "#FB8C00",
+                "Ra %.1f; R9 %.1f; Rf %.1f; Rg %.1f; CCT %.0f K; Duv %.4f".format(Locale.US, cri.ra, cri.r9, tm.rf, tm.rg, cri.cct.kelvin, cri.cct.duv)) else null)
         }
         Section(stringResource(R.string.light_calibration)) {
             Hint(stringResource(R.string.cri_cal_help))
@@ -512,7 +512,7 @@ fun DisplayTool(engine: AcquisitionEngine) {
     val gamut = if (prim.size == 3) DisplayCheck.gamut(prim) else null
     val white = stored[DisplayCheck.Patch.WHITE]
     fun choose(p: DisplayCheck.Patch) { patch = p; engine.simulator?.let { engine.setSimScene(SimScene.Display(simDisplay, p.ordinal)) } }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Column(Modifier.padding(horizontal = 12.dp)) {
             ChipChoices(DisplayCheck.Patch.entries, patch, { stringResource(patchRes(it)) }) { choose(it) }
@@ -539,8 +539,8 @@ fun DisplayTool(engine: AcquisitionEngine) {
             KeyValue("sRGB · DCI-P3 · Rec.2020", gamut?.let { "${f(it.coverSrgb, 0)} · ${f(it.coverP3, 0)} · ${f(it.cover2020, 0)} %" } ?: "—")
             KeyValue(stringResource(R.string.disp_white), white?.let { "${f(com.rfsat.pocketspectro.tools.Colorimetry.cct(it.first, it.second), 0)} K (D65 6504 K)" } ?: "—")
             Hint(stringResource(R.string.disp_gamut_help))
-            if (gamut != null) SaveResultButton(engine, ToolId.DISPLAY, "${f(gamut.coverP3, 0)} % P3", gamut.coverP3, "#1E88E5",
-                "area %.0f%% sRGB; cover sRGB %.0f%%, P3 %.0f%%, Rec2020 %.0f%%".format(Locale.US, gamut.areaVsSrgb, gamut.coverSrgb, gamut.coverP3, gamut.cover2020))
+            SaveResultButton(engine, ToolId.DISPLAY, if (gamut != null) SaveSpec("${f(gamut.coverP3, 0)} % P3", gamut.coverP3, "#1E88E5",
+                "area %.0f%% sRGB; cover sRGB %.0f%%, P3 %.0f%%, Rec2020 %.0f%%".format(Locale.US, gamut.areaVsSrgb, gamut.coverSrgb, gamut.coverP3, gamut.cover2020)) else null)
         }
         ReferencePanel(engine, RefKind.DARK_ONLY)
         SimPanel(engine) {
@@ -577,7 +577,7 @@ fun PigmentTool(engine: AcquisitionEngine) {
     val ft = remember(fr?.timeMs) { if (fr != null && r != null) Pigments.features(fr.wavelengths, r) else null }
     val m = remember(ft) { if (ft != null && fr != null) Pigments.match(fr.wavelengths, ft) else emptyList() }
     val best = m.firstOrNull()?.takeIf { it.score >= 0.55 }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (r == null) Note(stringResource(R.string.pig_needs_white))
         BigValue(stringResource(R.string.pig_best), best?.pigment?.name ?: if (ft == null) "—" else stringResource(R.string.ram_no_match), size = 22.sp,
@@ -589,8 +589,8 @@ fun PigmentTool(engine: AcquisitionEngine) {
             KeyValue(stringResource(R.string.pig_minima), ft?.minima?.takeIf { it.isNotEmpty() }?.joinToString(", ") { f(it, 0) }?.plus(" nm") ?: "—", live = true)
             for (k in 0..2) { val x = m.getOrNull(k); KeyValue(x?.pigment?.name ?: "—", x?.let { "${f(it.score * 100, 0)} %" } ?: "", live = true) }
             Hint(stringResource(R.string.pig_help))
-            if (best != null) SaveResultButton(engine, ToolId.PIGMENT, best.pigment.name, best.score, "#3949AB",
-                "%s %.0f%%; inflections %s; minima %s".format(Locale.US, best.pigment.name, best.score * 100, ft!!.inflections.joinToString("/") { f(it, 0) }, ft.minima.joinToString("/") { f(it, 0) }))
+            SaveResultButton(engine, ToolId.PIGMENT, if (best != null) SaveSpec(best.pigment.name, best.score, "#3949AB",
+                "%s %.0f%%; inflections %s; minima %s".format(Locale.US, best.pigment.name, best.score * 100, ft!!.inflections.joinToString("/") { f(it, 0) }, ft.minima.joinToString("/") { f(it, 0) })) else null)
         }
         ReferencePanel(engine, RefKind.WHITE)
         SimPanel(engine) {
@@ -619,7 +619,7 @@ fun GemTool(engine: AcquisitionEngine) {
     }
     val m = if (fr != null && (fluo || t != null)) Gems.match(features, if (fluo) Gems.Mode.FLUORESCENCE else Gems.Mode.ABSORPTION, fr.wavelengths) else emptyList()
     val best = m.firstOrNull()?.takeIf { it.score >= 0.6 }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Column(Modifier.padding(horizontal = 12.dp)) {
             ChipChoices(listOf(false, true), fluo, { stringResource(if (it) R.string.gem_fluorescence else R.string.gem_absorption) }) { v ->
@@ -637,8 +637,8 @@ fun GemTool(engine: AcquisitionEngine) {
             for (k in 0..2) { val x = m.getOrNull(k); KeyValue(x?.gem?.name ?: "—", x?.let { "${f(it.score * 100, 0)} %" } ?: "", live = true) }
             Hint(stringResource(if (fluo) R.string.gem_help_fluo else R.string.gem_help_abs))
             Hint(stringResource(R.string.gem_caution))
-            if (best != null) SaveResultButton(engine, ToolId.GEM, best.gem.name, best.score, "#00838F",
-                "%s %.0f%%; lines %s".format(Locale.US, best.gem.name, best.score * 100, features.take(6).joinToString("/") { f(it.nm, 1) }))
+            SaveResultButton(engine, ToolId.GEM, if (best != null) SaveSpec(best.gem.name, best.score, "#00838F",
+                "%s %.0f%%; lines %s".format(Locale.US, best.gem.name, best.score * 100, features.take(6).joinToString("/") { f(it.nm, 1) })) else null)
         }
         ReferencePanel(engine, if (fluo) RefKind.DARK_ONLY else RefKind.OPEN)
         SimPanel(engine) {

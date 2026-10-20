@@ -43,7 +43,7 @@ fun FireScreen(engine: AcquisitionEngine) {
     var showFull by remember { mutableStateOf(false) }
     val sim = engine.simulator
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         val r = frame?.fire
         val confirmed = frame?.fireConfirmed == true
         val (bg, title) = when {

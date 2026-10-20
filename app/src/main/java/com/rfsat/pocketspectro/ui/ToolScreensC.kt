@@ -81,16 +81,18 @@ fun SunTool(engine: AcquisitionEngine) {
     val r = st.result
     val pos = st.position
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         KeyValueRow(stringResource(R.string.sun_position), pos?.let {
             stringResource(R.string.sun_position_value, f(it.elevationDeg, 1), f(it.azimuthDeg, 0), f(st.airmass, 2))
         } ?: "—")
+        // One status line that is always there (its text and colour change), so nothing below jumps.
         when {
             frame != null && frame?.darkCorrected != true -> Note(stringResource(R.string.sun_needs_dark))
             st.saturated -> Note(stringResource(R.string.sun_saturated), OffRed)
             pos != null && pos.zenithDeg >= 85.0 -> Note(stringResource(R.string.sun_too_low))
             st.v0.isEmpty() -> Note(stringResource(R.string.sun_not_calibrated))
+            else -> Note(stringResource(R.string.sun_ok), OnGreen)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             BigValue(stringResource(R.string.sun_aod500), f(r?.aod500, 3), size = 28.sp)
@@ -103,9 +105,9 @@ fun SunTool(engine: AcquisitionEngine) {
                 KeyValue(stringResource(R.string.sun_aod_at, f(nm, 0)), f(r?.aod?.get(nm), 3), live = true)
             }
             Text(stringResource(R.string.sun_results_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (r?.aod500 != null) SaveResultButton(engine, ToolId.SUN, "AOD ${f(r.aod500, 2)}" + (r.pwvCm?.let { " · ${f(it, 1)} cm" } ?: ""),
+            SaveResultButton(engine, ToolId.SUN, if (r?.aod500 != null) SaveSpec("AOD ${f(r.aod500, 2)}" + (r.pwvCm?.let { " · ${f(it, 1)} cm" } ?: ""),
                 r.aod500, if (r.aod500 < 0.1) "#43A047" else if (r.aod500 < 0.3) "#FDD835" else "#E53935",
-                "AOD500 %.3f; alpha %s; PWV %s cm; airmass %.2f".format(Locale.US, r.aod500, f(r.angstrom, 2), f(r.pwvCm, 2), r.airmass))
+                "AOD500 %.3f; alpha %s; PWV %s cm; airmass %.2f".format(Locale.US, r.aod500, f(r.angstrom, 2), f(r.pwvCm, 2), r.airmass)) else null)
         }
         if (st.series.size >= 2) Section(stringResource(R.string.sun_series)) {
             val t0 = st.series.first().first
@@ -200,7 +202,7 @@ fun UvIndexTool(engine: AcquisitionEngine) {
     val site = engine.site()
     val pos = fr?.let { Solar.position(site.first, site.second, engine.solarTimeMs(it.timeMs)) }
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         when {
             fr != null && !fr.darkCorrected -> Note(stringResource(R.string.uvi_needs_dark))
@@ -224,8 +226,8 @@ fun UvIndexTool(engine: AcquisitionEngine) {
             KeyValue(stringResource(R.string.uvi_uvb_share), f(r?.uvbPercent, 1) + " %", live = true)
             KeyValue(stringResource(R.string.uvi_erythema_uvb), f(r?.erythemaFromUvb, 0) + " %", live = true)
             KeyValue(stringResource(R.string.sun_elevation), pos?.let { f(it.elevationDeg, 1) + "°" } ?: "—", live = true)
-            if (uvi != null) SaveResultButton(engine, ToolId.UV_INDEX, "UVI ${f(uvi, 1)}", uvi, hex(riskColour(risk!!)),
-                "UV index %.1f; UV-B %.1f %% of UV".format(Locale.US, uvi, r.uvbPercent))
+            SaveResultButton(engine, ToolId.UV_INDEX, if (uvi != null) SaveSpec("UVI ${f(uvi, 1)}", uvi, hex(riskColour(risk!!)),
+                "UV index %.1f; UV-B %.1f %% of UV".format(Locale.US, uvi, r.uvbPercent)) else null)
         }
         Section(stringResource(R.string.uvi_scale)) {
             Text(stringResource(R.string.uvi_scale_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -285,7 +287,7 @@ fun LampsTool(engine: AcquisitionEngine) {
     val fix by engine.location.fix.collectAsState()
     var simEmitter by remember { androidx.compose.runtime.mutableStateOf((engine.simulator?.scene as? SimScene.Emit)?.emitter) }
     val res = st.result
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         frame?.let { fr -> SpectrumChart(fr.wavelengths, engine.tools.spd(fr), height = 200.dp,
             yUnit = stringResource(if (light.response != null) R.string.unit_relative else R.string.unit_counts), xRange = 380.0..800.0) }
@@ -298,8 +300,8 @@ fun LampsTool(engine: AcquisitionEngine) {
             KeyValue(stringResource(R.string.lh_mel_der), f(st.health?.melanopicDer, 2), live = true)
             KeyValue(stringResource(R.string.lamp_clues), res?.let { lampClues(it) } ?: "—")
             if (light.response == null) Text(stringResource(R.string.lamp_uncorrected), style = MaterialTheme.typography.bodySmall, color = WarnAmber)
-            if (res != null && type != LampClassifier.Type.UNKNOWN) SaveResultButton(engine, ToolId.LAMPS, stringResource(lampRes(res.type)), st.light?.cct ?: Double.NaN,
-                res.type.colour, listOfNotNull(st.light?.cct?.let { "CCT %.0f K".format(Locale.US, it) }, st.health?.let { "mel-DER %.2f".format(Locale.US, it.melanopicDer) }).joinToString("; "))
+            SaveResultButton(engine, ToolId.LAMPS, if (res != null && type != LampClassifier.Type.UNKNOWN) SaveSpec(stringResource(lampRes(res.type)), st.light?.cct ?: Double.NaN,
+                res.type.colour, listOfNotNull(st.light?.cct?.let { "CCT %.0f K".format(Locale.US, it) }, st.health?.let { "mel-DER %.2f".format(Locale.US, it.melanopicDer) }).joinToString("; ")) else null)
         }
         Section(stringResource(R.string.lamp_survey)) {
             Text(stringResource(R.string.lamp_survey_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -357,7 +359,7 @@ fun FluorescenceTool(engine: AcquisitionEngine) {
     val ref = fr?.reference?.takeIf { fr.darkCorrected }
     val a = if (fr != null && ref != null) Fluorescence.measure(fr.wavelengths, fr.counts, ref, Fluorescence.Band.O2A) else null
     val b = if (fr != null && ref != null) Fluorescence.measure(fr.wavelengths, fr.counts, ref, Fluorescence.Band.O2B) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (ref == null) Note(stringResource(R.string.sif_needs_white))
         else if ((a?.referenceDepth ?: 0.0) < 0.2) Note(stringResource(R.string.sif_weak_band))
@@ -373,8 +375,8 @@ fun FluorescenceTool(engine: AcquisitionEngine) {
             KeyValue(stringResource(R.string.sif_reflectance), a?.let { "${f(it.reflectance * 100, 1)} %" } ?: "—", live = true)
             KeyValue(stringResource(R.string.sif_depth), a?.let { "${f(it.referenceDepth * 100, 0)} %" } ?: "—", live = true)
             Text(stringResource(R.string.sif_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (a != null) SaveResultButton(engine, ToolId.FLUORESCENCE, "F760 ${f(a.percentOfIrradiance, 2)} %", a.percentOfIrradiance, "#2E7D32",
-                "F760 %.2f %% of irradiance; F687 %s %%; reflectance %.1f %%".format(Locale.US, a.percentOfIrradiance, f(b?.percentOfIrradiance, 2), a.reflectance * 100))
+            SaveResultButton(engine, ToolId.FLUORESCENCE, if (a != null) SaveSpec("F760 ${f(a.percentOfIrradiance, 2)} %", a.percentOfIrradiance, "#2E7D32",
+                "F760 %.2f %% of irradiance; F687 %s %%; reflectance %.1f %%".format(Locale.US, a.percentOfIrradiance, f(b?.percentOfIrradiance, 2), a.reflectance * 100)) else null)
         }
         ReferencePanel(engine, RefKind.WHITE)
         SimPanel(engine) {
@@ -398,7 +400,7 @@ fun WaterTool(engine: AcquisitionEngine) {
     val fr = frame
     val abs = fr?.absorbance()
     val r = if (fr != null && abs != null) WaterUv.analyse(fr.wavelengths, abs, path, factor, doc.takeIf { it > 0 }) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (abs == null) Note(stringResource(R.string.conc_needs_blank))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -412,8 +414,8 @@ fun WaterTool(engine: AcquisitionEngine) {
             KeyValue("A220 / A254 / A275", r?.let { "${f(it.a220, 3)} / ${f(it.a254, 3)} / ${f(it.a275, 3)}" } ?: "—", live = true)
             KeyValue(stringResource(R.string.wat_suva), r?.suva?.let { "${f(it, 2)} L/(mg·m) · ${stringResource(suvaRes(it))}" } ?: stringResource(R.string.wat_suva_needs_doc), live = true)
             Text(stringResource(R.string.wat_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (r != null) SaveResultButton(engine, ToolId.WATER, "NO₃-N ${f(r.nitrateN, 1)} mg/L", r.nitrateN, if (r.nitrateN > 11.3) "#C62828" else "#1565C0",
-                "nitrate-N %.2f mg/L; UV254 %.1f 1/m".format(Locale.US, r.nitrateN, r.uv254) + (r.suva?.let { "; SUVA %.2f".format(Locale.US, it) } ?: ""))
+            SaveResultButton(engine, ToolId.WATER, if (r != null) SaveSpec("NO₃-N ${f(r.nitrateN, 1)} mg/L", r.nitrateN, if (r.nitrateN > 11.3) "#C62828" else "#1565C0",
+                "nitrate-N %.2f mg/L; UV254 %.1f 1/m".format(Locale.US, r.nitrateN, r.uv254) + (r.suva?.let { "; SUVA %.2f".format(Locale.US, it) } ?: "")) else null)
         }
         Section(stringResource(R.string.wat_settings)) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

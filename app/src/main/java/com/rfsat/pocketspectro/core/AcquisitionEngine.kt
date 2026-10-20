@@ -255,7 +255,24 @@ class AcquisitionEngine(private val context: Context, val store: SettingsStore, 
 
     // ---- user actions --------------------------------------------------------------------
 
+    /** Tool that switched acquisition on (null: the Live tab, the list or a test). */
+    @Volatile var acquisitionOwner: com.rfsat.pocketspectro.tools.ToolId? = null
+        private set
+
+    /**
+     * Several tools may run at once on the same spectra; the running-tools sheet shows them, warns about
+     * clashes and stops them. This stops everything: tool recorders, loggers, alarms, the session log
+     * and acquisition.
+     */
+    fun stopAll() {
+        tools.stopAllExcept(null)
+        if (_fireArmed.value) armFire(false)
+        if (_log.value.active) stopLog()
+        setRunning(false)
+    }
+
     fun setRunning(on: Boolean) {
+        if (on && !_running.value) acquisitionOwner = tools.active.value
         _running.value = on
         if (!on && _log.value.active && !_log.value.paused) pauseLog(true)
     }

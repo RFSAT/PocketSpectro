@@ -110,7 +110,7 @@ fun LightDoseTool(engine: AcquisitionEngine) {
     }
     val (aim, ok) = aimOk
     val sum = remember(st.samples.size, wake, bed) { log?.let { lg -> LightExposure.summary(st.samples, wake, bed) { lg.hourOf(it) } } }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         WellnessNote()
         AcquisitionRow(engine)
         if (mel == null) Note(stringResource(R.string.dose_needs_cal))
@@ -174,7 +174,7 @@ fun UvDoseTool(engine: AcquisitionEngine) {
     val rate = uvi?.let { UvDose.sedPerHour(it) }
     val left = if (rate != null && rate > 0.01) ((med - st.sedToday) / rate * 60).coerceAtLeast(0.0) else null
     val pct = 100 * st.sedToday / med
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         WellnessNote()
         AcquisitionRow(engine)
         if (params["uvi.scale"] == null) Note(stringResource(R.string.uvdose_needs_scale))
@@ -247,7 +247,7 @@ fun SkinTool(engine: AcquisitionEngine) {
     val r = fr?.ratio()
     val res = if (fr != null && r != null) SkinOptics.measure(fr.wavelengths, r) else null
     val base = params["skin.base.ei"]?.let { ei -> params["skin.base.mi"]?.let { mi -> ei to mi } }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         WellnessNote()
         AcquisitionRow(engine)
         if (r == null) Note(stringResource(R.string.skin_needs_white))
@@ -294,7 +294,7 @@ fun SkinTool(engine: AcquisitionEngine) {
 fun PulseTool(engine: AcquisitionEngine) {
     val st by engine.tools.pulse.collectAsState()
     val res = st.result
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         WellnessNote()
         AcquisitionRow(engine)
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -381,7 +381,7 @@ fun DiaryTool(engine: AcquisitionEngine) {
     val model = (conn as? com.rfsat.pocketspectro.core.Connection.Ready)?.info?.model ?: ""
     val uploadFailed = stringResource(R.string.diary_upload_failed)
     val uploadOk = stringResource(R.string.diary_uploaded)
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         WellnessNote()
         Section(stringResource(R.string.diary_study)) {
             OutlinedTextField(code, { code = it.take(32); engine.tools.setString("diary.code", code) }, Modifier.fillMaxWidth(), singleLine = true,

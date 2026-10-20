@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,19 +50,23 @@ fun ToggleButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     icon: ImageVector? = null,
+    /** Small padding, for table rows (task manager). */
+    compact: Boolean = false,
 ) {
     val bg = if (on) OnGreen else OffRed
     val edge = if (on) OnGreenEdge else OffRedEdge
     Button(
-        onClick = onClick, modifier = modifier, enabled = enabled,
+        // Compact: 28 dp high instead of the standard 40 dp minimum (dense tables).
+        onClick = onClick, modifier = if (compact) modifier.heightIn(min = 0.dp).height(28.dp) else modifier, enabled = enabled,
         colors = ButtonDefaults.buttonColors(
             containerColor = bg, contentColor = Color.White,
             disabledContainerColor = bg.copy(alpha = 0.40f), disabledContentColor = Color.White.copy(alpha = 0.85f),
         ),
         border = BorderStroke(2.dp, if (enabled) edge else edge.copy(alpha = 0.6f)),
+        contentPadding = if (compact) PaddingValues(horizontal = 8.dp, vertical = 2.dp) else ButtonDefaults.ContentPadding,
     ) {
         if (icon != null) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)) }
-        Text(label, fontWeight = FontWeight.SemiBold)
+        Text(label, fontWeight = FontWeight.SemiBold, style = if (compact) MaterialTheme.typography.labelMedium else LocalTextStyle.current)
     }
 }
 

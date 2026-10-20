@@ -59,7 +59,7 @@ fun TestKitTool(engine: AcquisitionEngine) {
     val c = a?.let { it / resp }
     var std by remember { mutableDoubleStateOf(1.0) }
     var simConc by remember { mutableDoubleStateOf((engine.simulator?.scene as? SimScene.Kit)?.concentration ?: 1.2) }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Column(Modifier.padding(horizontal = 12.dp)) {
             ChipChoices(TestKits.Method.entries, m, { stringResource(kitRes(it)) }) { engine.tools.setParam("kit.method", it.ordinal.toDouble()) }
@@ -88,8 +88,8 @@ fun TestKitTool(engine: AcquisitionEngine) {
                 }
             }
             if (params["kit.${m.name}.resp"] != null) ActionButton(onClick = { engine.tools.setParam("kit.${m.name}.resp", null) }, compact = true) { Text(stringResource(R.string.wat_reset)) }
-            if (c != null) SaveResultButton(engine, ToolId.TEST_KIT, "${stringResource(kitRes(m))}: ${f(c, 2)} ${m.unit}", c, "#00897B",
-                "%s %.3f %s; A %.3f at %.0f nm".format(Locale.US, m.name, c, m.unit, a, nm))
+            SaveResultButton(engine, ToolId.TEST_KIT, if (c != null) SaveSpec("${stringResource(kitRes(m))}: ${f(c, 2)} ${m.unit}", c, "#00897B",
+                "%s %.3f %s; A %.3f at %.0f nm".format(Locale.US, m.name, c, m.unit, a, nm)) else null)
         }
         ReferencePanel(engine, RefKind.BLANK)
         SimPanel(engine) {
@@ -134,7 +134,7 @@ fun PhTool(engine: AcquisitionEngine) {
     val fr = frame
     val abs = fr?.absorbance()
     val r = if (fr != null && abs != null) Indicator.pH(fr.wavelengths, abs, dye, ends) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Column(Modifier.padding(horizontal = 12.dp)) {
             ChipChoices(Indicator.Dye.entries, dye, { stringResource(dyeRes(it)) }) { engine.tools.setParam("ph.dye", it.ordinal.toDouble()) }
@@ -165,7 +165,7 @@ fun PhTool(engine: AcquisitionEngine) {
                 Text(stringResource(R.string.wat_reset))
             }
             Hint(stringResource(R.string.ph_help))
-            if (r != null) SaveResultButton(engine, ToolId.PH, "pH ${f(r.pH, 2)}", r.pH, "#7B1FA2", "pH %.3f; %s; R %.4f".format(Locale.US, r.pH, dye.name, r.ratio))
+            SaveResultButton(engine, ToolId.PH, if (r != null) SaveSpec("pH ${f(r.pH, 2)}", r.pH, "#7B1FA2", "pH %.3f; %s; R %.4f".format(Locale.US, r.pH, dye.name, r.ratio)) else null)
         }
         ReferencePanel(engine, RefKind.BLANK)
         SimPanel(engine) {
@@ -198,7 +198,7 @@ fun FluorimeterTool(engine: AcquisitionEngine) {
     val r = if (fr != null && excess != null) Fluorimetry.measure(fr.wavelengths, excess, fr.integrationUs, p) else null
     val conc = if (r != null && k != null && k > 0) r.signal / k else null
     val quant = p != Fluorimetry.Preset.SECURITY_UV
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Column(Modifier.padding(horizontal = 12.dp)) {
             ChipChoices(Fluorimetry.Preset.entries, p, { stringResource(fluorRes(it)) }) {
@@ -226,8 +226,8 @@ fun FluorimeterTool(engine: AcquisitionEngine) {
                 }
                 Hint(stringResource(R.string.fl_cal_help))
             }
-            if (r != null) SaveResultButton(engine, ToolId.FLUORIMETER, conc?.let { "${stringResource(fluorRes(p))}: ${f(it, 2)} ${p.unit}" } ?: stringResource(fluorRes(p)),
-                conc ?: r.signal, "#F57F17", "signal %.4g counts/s; peak %s nm".format(Locale.US, r.signal, f(r.peakNm, 0)))
+            SaveResultButton(engine, ToolId.FLUORIMETER, if (r != null) SaveSpec(conc?.let { "${stringResource(fluorRes(p))}: ${f(it, 2)} ${p.unit}" } ?: stringResource(fluorRes(p)),
+                conc ?: r.signal, "#F57F17", "signal %.4g counts/s; peak %s nm".format(Locale.US, r.signal, f(r.peakNm, 0))) else null)
         }
         ReferencePanel(engine, RefKind.BLANK)
         SimPanel(engine) {
@@ -267,7 +267,7 @@ fun NucleicTool(engine: AcquisitionEngine) {
     val fr = frame
     val abs = fr?.absorbance()
     val r = if (fr != null && abs != null) NucleicAcids.analyse(fr.wavelengths, abs, kind, params["na.path"] ?: 10.0, params["na.dilution"] ?: 1.0) else null
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         Column(Modifier.padding(horizontal = 12.dp)) {
             ChipChoices(NucleicAcids.Kind.entries, kind, { stringResource(when (it) { NucleicAcids.Kind.DS_DNA -> R.string.na_dsdna; NucleicAcids.Kind.RNA -> R.string.na_rna
@@ -291,8 +291,8 @@ fun NucleicTool(engine: AcquisitionEngine) {
                 NumberField(stringResource(R.string.drk_path), params["na.path"] ?: 10.0, { engine.tools.setParam("na.path", it) }, Modifier.weight(1f), 1, 0.1, 100.0, "mm")
                 NumberField(stringResource(R.string.drk_dilution), params["na.dilution"] ?: 1.0, { engine.tools.setParam("na.dilution", it) }, Modifier.weight(1f), 1, 1.0, 1e4, "×")
             }
-            if (r != null) SaveResultButton(engine, ToolId.NUCLEIC, "${f(r.concentration, 1)} µg/mL · ${f(r.r260280, 2)}", r.concentration, if (good280) "#2E7D32" else "#F9A825",
-                "%s %.2f ug/mL; 260/280 %.2f; 260/230 %.2f".format(Locale.US, kind.name, r.concentration, r.r260280, r.r260230))
+            SaveResultButton(engine, ToolId.NUCLEIC, if (r != null) SaveSpec("${f(r.concentration, 1)} µg/mL · ${f(r.r260280, 2)}", r.concentration, if (good280) "#2E7D32" else "#F9A825",
+                "%s %.2f ug/mL; 260/280 %.2f; 260/230 %.2f".format(Locale.US, kind.name, r.concentration, r.r260280, r.r260230)) else null)
         }
         ReferencePanel(engine, RefKind.BLANK)
         SimPanel(engine) {
@@ -313,7 +313,7 @@ fun GrowthTool(engine: AcquisitionEngine) {
     val fr = frame
     val od = fr?.absorbance()?.let { GrowthCurve.od600(fr.wavelengths, it, params["growth.path"] ?: 10.0) }
     val fit = remember(st.points.size) { GrowthCurve.fit(st.points) }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         if (fr?.reference == null) Note(stringResource(R.string.growth_needs_blank))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,8 +339,8 @@ fun GrowthTool(engine: AcquisitionEngine) {
             KeyValue(stringResource(R.string.growth_lag), fit?.let { "${f(it.lagMin, 0)} min" } ?: "—", live = true)
             KeyValue(stringResource(R.string.growth_max), fit?.let { f(it.maxOd, 3) } ?: "—", live = true)
             Hint(stringResource(R.string.growth_help))
-            if (fit != null) SaveResultButton(engine, ToolId.GROWTH, "µ ${f(fit.muPerHour, 2)} /h · td ${f(fit.doublingMin, 0)} min", fit.muPerHour, "#6D4C41",
-                "mu %.3f 1/h; doubling %.1f min; lag %.0f min; max OD %.3f".format(Locale.US, fit.muPerHour, fit.doublingMin, fit.lagMin, fit.maxOd))
+            SaveResultButton(engine, ToolId.GROWTH, if (fit != null) SaveSpec("µ ${f(fit.muPerHour, 2)} /h · td ${f(fit.doublingMin, 0)} min", fit.muPerHour, "#6D4C41",
+                "mu %.3f 1/h; doubling %.1f min; lag %.0f min; max OD %.3f".format(Locale.US, fit.muPerHour, fit.doublingMin, fit.lagMin, fit.maxOd)) else null)
         }
         ReferencePanel(engine, RefKind.BLANK)
         SimPanel(engine) {
@@ -365,7 +365,7 @@ fun PhysicsTool(engine: AcquisitionEngine) {
     val ryd = PhysicsLab.rydberg(lines)
     val peak = fr?.let { Spectra.peak(it.wavelengths, Spectra.smooth(it.counts, 2)) }
     val h = PhysicsLab.planck(leds)
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+    ToolPage {
         AcquisitionRow(engine)
         BigValue(stringResource(R.string.phys_element), best?.let { "${it.element} (${it.found}/${it.expected})" } ?: if (lines.isEmpty()) "—" else stringResource(R.string.ram_no_match),
             size = 24.sp, colour = if (best != null) OnGreen else MaterialTheme.colorScheme.primary)

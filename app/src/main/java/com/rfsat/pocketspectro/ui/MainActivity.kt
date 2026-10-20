@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             SpectroTheme {
                 AppRoot(engine, onReconnect = { connectSource() }, onRequestLocation = { requestLocation() },
-                    onExit = { engine.shutdown(); finishAndRemoveTask() })
+                    onExit = { engine.stopAll(); com.rfsat.pocketspectro.core.JobService.stop(this); engine.shutdown(); finishAndRemoveTask() })
             }
         }
 
@@ -152,8 +152,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Logging continues only while the app is in front, so stop GPS with it unless a log is open.
-        if (!engine.log.value.active) engine.location.stop()
+        // GPS keeps running with the app in the background only for a session log or background jobs (JobService).
+        if (!engine.log.value.active && !com.rfsat.pocketspectro.core.JobService.running) engine.location.stop()
     }
 
     override fun onDestroy() {
@@ -275,6 +275,8 @@ internal fun AppRoot(
                         )
                     }
                 },
+                // Running tools: one badge for all background activity, opening the task-manager sheet.
+                actions = { if (conn is Connection.Ready) RunningBadge(engine) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (fireAlarm) FireRed else MaterialTheme.colorScheme.surface,
                 ),
@@ -306,6 +308,7 @@ internal fun AppRoot(
                 dismissButton = { ActionButton(onClick = { confirmExit = false }) { Text(stringResource(R.string.action_cancel)) } },
             )
         }
+        JobServiceStarter(engine)
         // imePadding: text fields (tools, logging) stay above the on-screen keyboard.
         Box(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad).imePadding()) {
             val ready = conn is Connection.Ready

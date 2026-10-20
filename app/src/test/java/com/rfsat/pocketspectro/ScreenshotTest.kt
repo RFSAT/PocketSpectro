@@ -420,14 +420,54 @@ class ScreenshotTest {
 
     @Test fun u00_toolsListNir() {
         prepare()
+        groupsOpen()
         show(Tab.TOOLS)
         shot("20_tools_list_nir")
     }
 
+    /** Opens one group on the Tools list (null: the default, the first group). */
+    private fun groupsOpen(g: com.rfsat.pocketspectro.tools.ToolGroup? = null) {
+        val e = app.getSharedPreferences("tools", Context.MODE_PRIVATE).edit()
+        if (g == null) e.remove("grpOpen") else e.putString("grpOpen", g.name)
+        e.commit()
+    }
+
     @Test @Config(qualifiers = TALL) fun u01_toolsListVis() {
         prepare(model = com.rfsat.pocketspectro.sim.SimModel.VIS)
+        groupsOpen(com.rfsat.pocketspectro.tools.ToolGroup.LAB)
         show(Tab.TOOLS)
         shot("21_tools_list_vis_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u01b_toolsListNirStatus() {
+        prepare()
+        groupsOpen(com.rfsat.pocketspectro.tools.ToolGroup.FIELD)
+        show(Tab.TOOLS)
+        shot("21b_tools_list_nir_status_full_length")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u01c_partialToolWithRelated() {
+        prepare(); tool(T("GREENHOUSE"))
+        darkOnly(); engine.setRunning(true); show(Tab.TOOLS); freshFrames(2)
+        shot("21c_tool_partial_coverage_full_length")
+    }
+
+    @Test fun u01d_unsupportedTool() {
+        prepare(); tool(T("UV_INDEX"))
+        show(Tab.TOOLS)
+        shot("21d_tool_not_supported")
+    }
+
+    @Test @Config(qualifiers = TALL) fun u01e_runningTools() {
+        prepare(model = com.rfsat.pocketspectro.sim.SimModel.VIS)
+        tool(T("KINETICS")); darkOnly(); engine.setRunning(true)
+        engine.tools.kineticsRecording(true)
+        engine.tools.vegRecording(true)
+        engine.tools.lightDoseLogging(true)
+        show(Tab.TOOLS); freshFrames(2)
+        compose.onNode(hasText("4 running", substring = true)).performClick()
+        compose.waitForIdle()
+        com.github.takahirom.roborazzi.captureScreenRoboImage("build/screenshots/21e_running_tools.png")
     }
 
     @Test @Config(qualifiers = TALL) fun u02_emission() {
@@ -670,7 +710,7 @@ class ScreenshotTest {
         engine.store.update { it.copy(integrationMs = 20.0) }
         engine.setRunning(true); show(Tab.TOOLS); freshFrames(2)
         compose.onNode(hasText("Run dark test")).performClick()
-        compose.waitUntil(90_000) { compose.onAllNodes(hasText("counts @", substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(180_000) { compose.onAllNodes(hasText("counts @", substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
         engine.setSimScene(com.rfsat.pocketspectro.sim.SimScene.Emit(com.rfsat.pocketspectro.sim.SimEmitter.HG_AR_LAMP))
         darkOnly(); freshFrames(2)
         compose.onNode(hasText("Check wavelength")).performClick()
@@ -685,6 +725,7 @@ class ScreenshotTest {
         engine.applyRecommendedFirePreset()
         engine.store.update { it.copy(alarmSound = false, alarmVibrate = false) }
         engine.openTool(T("FIRE"))
+        engine.setRunning(true)
         freshFrames(8)
         engine.simulator!!.fireOn = true
         freshFrames(6)

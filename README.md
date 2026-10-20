@@ -48,7 +48,7 @@ analysis runs.
 
 | Tab | Purpose |
 |---|---|
-| Home | Connection status and quick actions, app description, RFSAT and hardware details, spectrometer support list |
+| Home | Connection status and quick actions, app description, RFSAT and hardware details, spectrometer support list, acknowledgement of development support from Claude AI (Anthropic) |
 | Live | Live spectrum (counts, absorbance, %T/%R), run/stop/single, integration, averaging, boxcar, dark (manual or built-in shutter) and reference |
 | Tools | The measuring tools (see below); Fire detection is one of them |
 | Map | Fire detections (flame icons; grey for simulated ones) from the detection journal and survey tracks (blue) of logged sessions on a MapLibre map with Street / Satellite / Terrain layers, as in DBM; tap a detection for its details |
@@ -64,8 +64,40 @@ alarm, journal and map, where they are titled "Fire detection (simulated)".
 
 ## Tools
 
-Each tool declares the wavelength range it needs; tools the connected unit cannot serve are greyed out
-with the range they need. With the simulator (Setup, or "Try with the simulator" on the Tools tab) the
+Each tool declares the wavelength range it needs (`ToolId.needsRange`). On the Tools list every tool
+carries a mark for the connected unit: green (fully covered), amber (partly covered: the tool opens with
+a warning that results may be incomplete or not fully accurate) or red (no useful overlap, at least
+20 nm or a quarter of the range: the whole card is greyed out with the range needed). The groups open
+one at a time like an accordion (opening one closes the others; the first group is open by default,
+the choice is remembered, and Collapse all closes them), and each group header counts
+the supported, partly supported and unsupported tools. Every tool page ends with **Related tools**
+(`ToolId.related`): a bulleted list of tools measuring similar quantities, each name a link to the
+tool, followed by its status on the connected unit (supported / partly covered / not on this unit)
+and a one-line description (`short_<tool>` strings).
+
+Several tools can run at once on the same spectra (for example a lamp survey with the light-dose
+logger). A **running-tools badge** in the top bar ("● 3 running": green, amber with a conflict, grey
+when idle) opens a task-manager sheet listing every background job in one table with aligned columns
+(short tool name, live status, ON/OFF): acquisition (exposure, averaging and the tool that started it),
+fire watch, line alarm, vegetation and lamp surveys, Langley, kinetics, growth, light dose, UV dose,
+plant light, pulse and the session log, running ones first, with **Stop all**. Each tool's job declares
+what it needs (`tools/Jobs.kt`): what the probe looks at, the stored reference (dark, white, blank)
+and whether it needs a fixed exposure or changes it (auto-exposure). Running jobs that clash are
+listed as warnings in the sheet and on the page of the tool concerned. Starting a job from the sheet
+also starts acquisition. **With the screen off**, a foreground service (`core/JobService.kt`) keeps running while any logger,
+recorder, alarm or session log is on with a real spectrometer: an ongoing notification lists the
+running jobs with their live status (refreshed every 5 s), tapping it opens the app, and **Stop all**
+stops everything; a partial wake lock, renewed while jobs run, keeps the CPU reading the
+spectrometer. The service is started from the app while it is in front (as Android requires) and
+stops itself when nothing runs. Types: `connectedDevice` (the USB spectrometer; no time limit) and
+`location` when location access is granted (GPS-tagged surveys). With the simulator no service is
+started: demo loggers run while the app is open. Android 13+ asks once for the notification
+permission. Before publishing, fill in the **foreground service declaration** in Play Console (App
+content) for these two types, with a short video of a logger running with the screen off.
+
+"Save to map" is always shown (a result stays saveable for 5 s
+after it was last computed, so the button does not flash) and uses the live GPS fix or, without one,
+the newest position any provider knows. With the simulator (Setup, or "Try with the simulator" on the Tools tab) the
 simulated model (STS-NIR / STS-VIS / STS-UV) can be switched on the Tools list, and every tool has a
 **Simulation** panel choosing what the simulated probe looks at, so each tool can be evaluated before
 buying hardware. While a white reference or blank is stored, the simulator shows the white tile or the
